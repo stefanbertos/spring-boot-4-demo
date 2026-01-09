@@ -4,3 +4,15 @@ spring:
   threads:
     virtual:
       enabled: true
+  jms:
+    listener:
+      auto-startup: true
+
+ibm:
+  mq:
+    queue-manager: QM1
+    channel: DEV.ADMIN.SVRCONN
+    conn-name: localhost(1414)
+    user: admin
+    password: passw0rd
+    queue-name: DEV.QUEUE.1
