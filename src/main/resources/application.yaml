@@ -7,6 +7,16 @@ spring:
   jms:
     listener:
       auto-startup: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: demo-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 ibm:
   mq:
@@ -16,3 +26,19 @@ ibm:
     user: admin
     password: passw0rd
     queue-name: DEV.QUEUE.1
+
+kafka:
+  topic:
+    name: mq-messages
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
