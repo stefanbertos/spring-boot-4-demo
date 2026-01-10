@@ -6,7 +6,10 @@
       "Bash(dir /s /b C:UsersstefaIdeaProjectsdemosrctest*.java)",
       "Bash(xcopy:*)",
       "Bash(mvn clean test:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(test:*)",
+      "Bash(mvnw.cmd clean compile:*)",
+      "Bash(./mvnw.cmd clean:*)"
     ]
   }
 }

@@ -16,14 +16,15 @@ public class MessageListener {
     private final MqToKafkaMessageConverter messageConverter;
 
     public MessageListener(KafkaMessageService kafkaMessageService,
-                          MqToKafkaMessageConverter messageConverter) {
+                           MqToKafkaMessageConverter messageConverter) {
         this.kafkaMessageService = kafkaMessageService;
         this.messageConverter = messageConverter;
     }
 
     @JmsListener(destination = "${ibm.mq.queue-name}")
     @Counted(value = "mq.messages.received", description = "Total number of messages received from MQ")
-    @Timed(value = "message.processing.time", description = "Time taken to process and forward message from MQ to Kafka")
+    @Timed(value = "message.processing.time",
+            description = "Time taken to process and forward message from MQ to Kafka")
     public void receiveMessage(String message) {
         log.info("Received message from MQ: {}", message);
 

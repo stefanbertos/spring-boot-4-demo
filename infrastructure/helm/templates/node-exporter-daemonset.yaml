@@ -1,0 +1,100 @@
+{{- if .Values.nodeExporter.enabled }}
+---
+# Service for Node Exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: node-exporter
+spec:
+  type: {{ .Values.nodeExporter.service.type }}
+  clusterIP: None
+  ports:
+  - port: {{ .Values.nodeExporter.service.port }}
+    targetPort: {{ .Values.nodeExporter.service.port }}
+    name: metrics
+  selector:
+    app: node-exporter
+---
+# DaemonSet for Node Exporter (runs on all nodes)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.nodeExporter.service.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      containers:
+      - name: node-exporter
+        image: {{ .Values.nodeExporter.image.repository }}:{{ .Values.nodeExporter.image.tag }}
+        imagePullPolicy: {{ .Values.nodeExporter.image.pullPolicy }}
+        args:
+        - --path.procfs=/host/proc
+        - --path.sysfs=/host/sys
+        - --path.rootfs=/host/root
+        - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+        ports:
+        - containerPort: {{ .Values.nodeExporter.service.port }}
+          name: metrics
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.nodeExporter.resources | nindent 10 }}
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: root
+          mountPath: /host/root
+          mountPropagation: HostToContainer
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: root
+        hostPath:
+          path: /
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+{{- end }}

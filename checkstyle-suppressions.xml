@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <!-- Suppress checks for test files -->
+    <suppress checks="MagicNumber" files=".*Test\.java"/>
+    <suppress checks="MethodLength" files=".*Test\.java"/>
+
+    <!-- Suppress for generated files -->
+    <suppress checks=".*" files=".*[\\/]target[\\/].*"/>
+
+    <!-- Suppress visibility modifier check for Lombok-generated classes -->
+    <suppress checks="VisibilityModifier" files=".*Application\.java"/>
+
+    <!-- Suppress HideUtilityClassConstructor for Spring Boot Application class -->
+    <suppress checks="HideUtilityClassConstructor" files=".*DemoApplication\.java"/>
+</suppressions>

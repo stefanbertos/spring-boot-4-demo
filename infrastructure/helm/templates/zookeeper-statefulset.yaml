@@ -1,0 +1,203 @@
+{{- if .Values.zookeeper.enabled }}
+---
+# Headless Service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-headless
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: zookeeper
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.zookeeper.service.port }}
+    name: client
+  - port: 2888
+    name: server
+  - port: 3888
+    name: leader-election
+  selector:
+    app: zookeeper
+---
+# Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: zookeeper
+spec:
+  type: {{ .Values.zookeeper.service.type }}
+  selector:
+    app: zookeeper
+  ports:
+  - port: {{ .Values.zookeeper.service.port }}
+    targetPort: {{ .Values.zookeeper.service.port }}
+    name: client
+---
+# Zookeeper StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: zookeeper
+spec:
+  serviceName: zookeeper-headless
+  replicas: {{ .Values.zookeeper.replicaCount }}
+  selector:
+    matchLabels:
+      app: zookeeper
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2181"
+    spec:
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        {{- if .Values.securityContext.seccompProfile }}
+        seccompProfile:
+          type: {{ .Values.securityContext.seccompProfile.type }}
+        {{- end }}
+      {{- end }}
+      {{- if eq .Values.zookeeper.antiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - zookeeper
+            topologyKey: kubernetes.io/hostname
+      {{- else if eq .Values.zookeeper.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - zookeeper
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      containers:
+      - name: zookeeper
+        image: {{ .Values.zookeeper.image.repository }}:{{ .Values.zookeeper.image.tag }}
+        imagePullPolicy: {{ .Values.zookeeper.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.zookeeper.service.port }}
+          name: client
+        - containerPort: 2888
+          name: server
+        - containerPort: 3888
+          name: leader-election
+        env:
+        # Enable ensemble mode
+        - name: ZOO_ENABLE_QUORUM_AUTH
+          value: "no"
+        - name: ZOO_ENABLE_AUTH
+          value: "no"
+        - name: ALLOW_ANONYMOUS_LOGIN
+          value: "yes"
+        # Server ID from pod ordinal
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ZOO_SERVER_ID
+          value: "$(echo $(($(echo $POD_NAME | sed 's/zookeeper-//') + 1)))"
+        # Zookeeper ensemble
+        - name: ZOO_SERVERS
+          value: "zookeeper-0.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::1 zookeeper-1.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::2 zookeeper-2.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::3"
+        # Performance tuning
+        - name: ZOO_TICK_TIME
+          value: "2000"
+        - name: ZOO_INIT_LIMIT
+          value: "10"
+        - name: ZOO_SYNC_LIMIT
+          value: "5"
+        - name: ZOO_MAX_CLIENT_CNXNS
+          value: "60"
+        - name: ZOO_AUTOPURGE_PURGE_INTERVAL
+          value: "1"
+        - name: ZOO_AUTOPURGE_SNAP_RETAIN_COUNT
+          value: "3"
+        resources:
+          {{- toYaml .Values.zookeeper.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /bitnami/zookeeper
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - echo ruok | nc 127.0.0.1 {{ .Values.zookeeper.service.port }} | grep imok
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - echo ruok | nc 127.0.0.1 {{ .Values.zookeeper.service.port }} | grep imok
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      {{- if not .Values.zookeeper.persistence.enabled }}
+      volumes:
+      - name: data
+        emptyDir: {}
+      {{- end }}
+  {{- if .Values.zookeeper.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.zookeeper.persistence.size }}
+      {{- if .Values.zookeeper.persistence.storageClass }}
+      storageClassName: {{ .Values.zookeeper.persistence.storageClass }}
+      {{- end }}
+  {{- end }}
+{{- if .Values.zookeeper.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: zookeeper-pdb
+  namespace: {{ .Values.global.namespace }}
+spec:
+  {{- if .Values.zookeeper.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.zookeeper.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.zookeeper.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.zookeeper.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: zookeeper
+{{- end }}
+{{- end }}

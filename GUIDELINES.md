@@ -190,6 +190,13 @@ com.example.demo
 - Mockito for mocking
 - AssertJ for assertions
 
+### Code Quality Tools
+- **SpotBugs**: Detects bugs in Java code through static analysis
+- **Checkstyle**: Enforces coding standards and style guidelines
+- **PMD**: Finds potential problems like unused variables, empty catch blocks, unnecessary object creation
+- **ArchUnit**: Tests and validates architecture rules
+- **Spring Modulith**: Supports modular monolith architecture
+
 ### Infrastructure
 - IBM MQ for message queuing
 - Apache Kafka for event streaming
@@ -197,7 +204,47 @@ com.example.demo
 - Grafana for metrics visualization
 - Docker Compose for local development
 
+## Code Quality Standards
+
+### Static Analysis
+All code must pass static analysis checks before merging:
+- **SpotBugs** must report no bugs
+- **Checkstyle** violations must be addressed
+- **PMD** issues must be fixed
+
+Run all checks with:
+```bash
+mvn clean verify
+```
+
+### Architecture Rules
+The codebase follows layered architecture validated by ArchUnit:
+- Controllers only in `controller` package
+- Services only in `service` package
+- Repositories only in `repository` package (if exists)
+- DTOs only in `dto` package
+- Converters only in `converter` package
+- No cyclic dependencies between packages
+- Proper dependency direction (controller → service → repository)
+
 ## Continuous Improvement
 - Review and update these guidelines as the project evolves
 - All team members should follow these guidelines
 - Code reviews should verify compliance with these standards
+- Static analysis tools should be run before committing code
+- 
+### Spring Boot 4
+- Spring Boot 4.0 has a new modular design and now ships smaller focused modules rather than several large jars. As a result, this release has a more consistent set of “starter” POMs, and features that only relied on a third-party dependency to work can require an additional starter.
+You will need to make dependency modifications if your current application doesn’t use Spring Boot “starter” POMs.
+Main Code
+The new modules and “starter” POMs follow a convention that lets you identify where the support for a given technology comes from:
+All Spring Boot modules are named spring-boot-<technology>.
+The root package of each module is org.springframework.boot.<technology>.
+All “starter” POMs are named spring-boot-starter-<technology>.
+To illustrate the above, support for GraphQL is in spring-boot-graphql with a root package of org.springframework.boot.graphql. The “starter” POM is spring-boot-starter-graphql.
+- Test Code
+  The modularity also applies to the test infrastructure. A similar convention is applied:
+All Spring Boot test modules are named spring-boot-<technology>-test.
+The root package of each such module is org.springframework.boot.<technology>.test.
+All test “starter” POMs are named spring-boot-starter-<technology>-test.
+To illustrate the above, test infrastructure for GraphQL is in spring-boot-graphql-test with a root package of org.springframework.boot.graphql.test. The “starter” POM is spring-boot-starter-graphql-test.

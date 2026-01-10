@@ -1,0 +1,226 @@
+{{- if .Values.demoApp.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-app-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  application.yaml: |
+    spring:
+      application:
+        name: demo
+      threads:
+        virtual:
+          enabled: {{ .Values.demoApp.config.virtualThreads }}
+      jms:
+        listener:
+          auto-startup: true
+      kafka:
+        bootstrap-servers: kafka:9092
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+    ibm:
+      mq:
+        queue-manager: {{ .Values.demoApp.config.mqQueueManager }}
+        channel: {{ .Values.demoApp.config.mqChannel }}
+        conn-name: ibmmq(1414)
+        user: {{ .Values.demoApp.config.mqUser }}
+        password: {{ .Values.demoApp.config.mqPassword }}
+        queue-name: {{ .Values.demoApp.config.mqQueueName }}
+
+    kafka:
+      topic:
+        name: {{ .Values.demoApp.config.kafkaTopic }}
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,prometheus,metrics
+      metrics:
+        tags:
+          application: ${spring.application.name}
+        export:
+          prometheus:
+            enabled: true
+      health:
+        livenessState:
+          enabled: true
+        readinessState:
+          enabled: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: demo-app
+spec:
+  replicas: {{ .Values.demoApp.replicaCount }}
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        {{- if .Values.securityContext.seccompProfile }}
+        seccompProfile:
+          type: {{ .Values.securityContext.seccompProfile.type }}
+        {{- end }}
+      {{- end }}
+      {{- if eq .Values.demoApp.antiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - demo-app
+            topologyKey: kubernetes.io/hostname
+      {{- else if eq .Values.demoApp.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - demo-app
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      containers:
+      - name: demo-app
+        image: {{ .Values.demoApp.image.repository }}:{{ .Values.demoApp.image.tag }}
+        imagePullPolicy: {{ .Values.demoApp.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.demoApp.service.port }}
+          name: http
+        env:
+        - name: SPRING_CONFIG_LOCATION
+          value: /config/application.yaml
+        {{- if .Values.demoApp.config.javaOpts }}
+        - name: JAVA_OPTS
+          value: {{ .Values.demoApp.config.javaOpts | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.demoApp.resources | nindent 10 }}
+        {{- if .Values.demoApp.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.demoApp.livenessProbe.path }}
+            port: {{ .Values.demoApp.service.port }}
+          initialDelaySeconds: {{ .Values.demoApp.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.demoApp.livenessProbe.periodSeconds }}
+          {{- if .Values.demoApp.livenessProbe.timeoutSeconds }}
+          timeoutSeconds: {{ .Values.demoApp.livenessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.demoApp.livenessProbe.failureThreshold }}
+          failureThreshold: {{ .Values.demoApp.livenessProbe.failureThreshold }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.demoApp.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.demoApp.readinessProbe.path }}
+            port: {{ .Values.demoApp.service.port }}
+          initialDelaySeconds: {{ .Values.demoApp.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.demoApp.readinessProbe.periodSeconds }}
+          {{- if .Values.demoApp.readinessProbe.timeoutSeconds }}
+          timeoutSeconds: {{ .Values.demoApp.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.demoApp.readinessProbe.failureThreshold }}
+          failureThreshold: {{ .Values.demoApp.readinessProbe.failureThreshold }}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /config
+      volumes:
+      - name: config
+        configMap:
+          name: demo-app-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: {{ .Values.demoApp.service.type }}
+  selector:
+    app: demo-app
+  ports:
+  - port: {{ .Values.demoApp.service.port }}
+    targetPort: {{ .Values.demoApp.service.port }}
+    {{- if eq .Values.demoApp.service.type "NodePort" }}
+    nodePort: {{ .Values.demoApp.service.nodePort }}
+    {{- end }}
+    name: http
+{{- if .Values.demoApp.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: demo-app-pdb
+  namespace: {{ .Values.global.namespace }}
+spec:
+  {{- if .Values.demoApp.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.demoApp.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.demoApp.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.demoApp.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: demo-app
+{{- end }}
+{{- if .Values.demoApp.autoscaling.enabled }}
+---
+# HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: demo-app-hpa
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: demo-app
+  minReplicas: {{ .Values.demoApp.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.demoApp.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.demoApp.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.demoApp.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.demoApp.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.demoApp.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}
+{{- end }}

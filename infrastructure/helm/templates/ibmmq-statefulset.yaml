@@ -1,0 +1,183 @@
+{{- if .Values.ibmmq.enabled }}
+---
+# Headless Service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: ibmmq-headless
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ibmmq
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.ibmmq.service.port }}
+    name: mq
+  - port: {{ .Values.ibmmq.service.webPort }}
+    name: web
+  selector:
+    app: ibmmq
+---
+# Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ibmmq
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ibmmq
+spec:
+  type: {{ .Values.ibmmq.service.type }}
+  selector:
+    app: ibmmq
+  ports:
+  - port: {{ .Values.ibmmq.service.port }}
+    targetPort: {{ .Values.ibmmq.service.port }}
+    {{- if eq .Values.ibmmq.service.type "NodePort" }}
+    nodePort: {{ .Values.ibmmq.service.nodePort }}
+    {{- end }}
+    name: mq
+  - port: {{ .Values.ibmmq.service.webPort }}
+    targetPort: {{ .Values.ibmmq.service.webPort }}
+    {{- if eq .Values.ibmmq.service.type "NodePort" }}
+    nodePort: {{ .Values.ibmmq.service.webNodePort }}
+    {{- end }}
+    name: web
+---
+# IBM MQ StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ibmmq
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ibmmq
+spec:
+  serviceName: ibmmq-headless
+  replicas: {{ .Values.ibmmq.replicaCount }}
+  selector:
+    matchLabels:
+      app: ibmmq
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: ibmmq
+    spec:
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        {{- if .Values.securityContext.seccompProfile }}
+        seccompProfile:
+          type: {{ .Values.securityContext.seccompProfile.type }}
+        {{- end }}
+      {{- end }}
+      {{- if eq .Values.ibmmq.antiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - ibmmq
+            topologyKey: kubernetes.io/hostname
+      {{- else if eq .Values.ibmmq.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ibmmq
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      containers:
+      - name: ibmmq
+        image: {{ .Values.ibmmq.image.repository }}:{{ .Values.ibmmq.image.tag }}
+        imagePullPolicy: {{ .Values.ibmmq.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.ibmmq.service.port }}
+          name: mq
+        - containerPort: {{ .Values.ibmmq.service.webPort }}
+          name: web
+        env:
+        - name: LICENSE
+          value: "accept"
+        - name: MQ_QMGR_NAME
+          value: {{ .Values.ibmmq.config.queueManager }}
+        - name: MQ_APP_PASSWORD
+          value: {{ .Values.ibmmq.config.adminPassword }}
+        - name: MQ_ADMIN_PASSWORD
+          value: {{ .Values.ibmmq.config.adminPassword }}
+        # Enable multi-instance queue manager for HA (requires shared storage)
+        {{- if gt (int .Values.ibmmq.replicaCount) 1 }}
+        - name: MQ_MULTI_INSTANCE
+          value: "true"
+        {{- end }}
+        resources:
+          {{- toYaml .Values.ibmmq.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/mqm
+        livenessProbe:
+          exec:
+            command:
+            - chkmqhealthy
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - chkmqready
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+  {{- if .Values.ibmmq.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.ibmmq.persistence.size }}
+      {{- if .Values.ibmmq.persistence.storageClass }}
+      storageClassName: {{ .Values.ibmmq.persistence.storageClass }}
+      {{- end }}
+  {{- else }}
+  volumes:
+  - name: data
+    emptyDir: {}
+  {{- end }}
+{{- if .Values.ibmmq.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ibmmq-pdb
+  namespace: {{ .Values.global.namespace }}
+spec:
+  {{- if .Values.ibmmq.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.ibmmq.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.ibmmq.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.ibmmq.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: ibmmq
+{{- end }}
+{{- end }}

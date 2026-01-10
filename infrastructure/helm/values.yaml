@@ -1,0 +1,246 @@
+# Production-like values for Rancher Desktop deployment
+# This configuration provides a production-like environment locally
+
+global:
+  namespace: demo-app
+  environment: local-prod
+
+# IBM MQ Configuration - Single Instance
+ibmmq:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: icr.io/ibm-messaging/mq
+    tag: "9.3.4.1-r1"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 1414
+    webPort: 9443
+    nodePort: 31414
+    webNodePort: 31443
+  config:
+    queueManager: QM1
+    channel: DEV.ADMIN.SVRCONN
+    queueName: DEV.QUEUE.1
+    adminPassword: passw0rd
+  persistence:
+    enabled: false  # Disabled for local development
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  podDisruptionBudget:
+    enabled: false
+  antiAffinity: ""
+
+# Apache Kafka Configuration - 3 Brokers with Zookeeper
+kafka:
+  enabled: true
+  replicaCount: 3
+  mode: zookeeper  # Use Zookeeper (not KRaft)
+  image:
+    repository: bitnami/kafka
+    tag: "3.6.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 9092
+    nodePort: 31092
+  config:
+    topicName: mq-messages
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+    offsetsTopicReplicationFactor: 3
+    # Performance tuning
+    numNetworkThreads: 3
+    numIoThreads: 4
+    socketSendBufferBytes: 102400
+    socketReceiveBufferBytes: 102400
+    socketRequestMaxBytes: 104857600
+    logRetentionHours: 168
+    logSegmentBytes: 1073741824
+    compressionType: "lz4"
+  persistence:
+    enabled: false  # Disabled for local development
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  podDisruptionBudget:
+    enabled: false
+  antiAffinity: ""
+  jvmOptions:
+    heapSize: "384m"
+    maxHeapSize: "384m"
+
+# Zookeeper Configuration - 3 Instances for Kafka
+zookeeper:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: bitnami/zookeeper
+    tag: "3.9.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 2181
+  persistence:
+    enabled: false  # Disabled for local development
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  podDisruptionBudget:
+    enabled: false
+  antiAffinity: ""
+
+# Prometheus Configuration - Single Instance
+prometheus:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: prom/prometheus
+    tag: v2.48.0
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 9090
+    nodePort: 31090
+  persistence:
+    enabled: false
+  config:
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  podDisruptionBudget:
+    enabled: false
+
+# Prometheus Node Exporter - DaemonSet (runs on all nodes)
+nodeExporter:
+  enabled: true
+  image:
+    repository: prom/node-exporter
+    tag: v1.7.0
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 9100
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+# Grafana Configuration - Single Instance
+grafana:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: grafana/grafana
+    tag: 10.2.3
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 31300
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  podDisruptionBudget:
+    enabled: false
+
+# Demo Application Configuration - Single Instance
+demoApp:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: demo-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 31080
+  config:
+    mqQueueManager: QM1
+    mqChannel: DEV.ADMIN.SVRCONN
+    mqQueueName: DEV.QUEUE.1
+    mqUser: admin
+    mqPassword: passw0rd
+    kafkaTopic: mq-messages
+    virtualThreads: true
+    javaOpts: "-Xms512m -Xmx1g -XX:+UseZGC"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  livenessProbe:
+    enabled: true
+    path: /actuator/health/liveness
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    path: /actuator/health/readiness
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  podDisruptionBudget:
+    enabled: false
+  antiAffinity: ""
+  autoscaling:
+    enabled: false
+
+# Ingress Configuration (disabled for local)
+ingress:
+  enabled: false
+
+# Security (disabled for local development)
+networkPolicy:
+  enabled: false
+
+securityContext:
+  enabled: false
+
+# Resource Quotas (disabled for local)
+resourceQuota:
+  enabled: false
+
+# Monitoring & Alerting
+monitoring:
+  serviceMonitor:
+    enabled: false  # Disable for local (Prometheus Operator not required)
+  podMonitor:
+    enabled: false
