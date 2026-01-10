@@ -98,104 +98,102 @@ spec:
       - name: kafka
         image: {{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}
         imagePullPolicy: {{ .Values.kafka.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          # Extract ordinal from hostname (0-based for Kafka)
+          export KAFKA_BROKER_ID=${HOSTNAME##*-}
+          # Update advertised listeners with actual hostname
+          export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://${HOSTNAME}.kafka-headless.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.kafka.service.port }}"
+          echo "Starting Kafka Broker ID=${KAFKA_BROKER_ID}"
+          /etc/confluent/docker/run
         ports:
         - containerPort: {{ .Values.kafka.service.port }}
           name: kafka
         env:
         # Zookeeper Configuration
-        - name: KAFKA_CFG_ZOOKEEPER_CONNECT
-          value: "zookeeper-0.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2181,zookeeper-1.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2181,zookeeper-2.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2181"
-        # Broker ID from pod ordinal
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: KAFKA_CFG_BROKER_ID
-          value: "$(echo $POD_NAME | sed 's/kafka-//')"
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "{{- range $i := until (int .Values.zookeeper.replicaCount) }}zookeeper-{{ $i }}.zookeeper-headless.{{ $.Values.global.namespace }}.svc.cluster.local:2181{{- if ne $i (sub (int $.Values.zookeeper.replicaCount) 1) }},{{- end }}{{- end }}"
         # Listeners configuration
-        - name: KAFKA_CFG_LISTENERS
+        - name: KAFKA_LISTENERS
           value: "PLAINTEXT://:{{ .Values.kafka.service.port }}"
-        - name: KAFKA_CFG_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://$(POD_NAME).kafka-headless.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.kafka.service.port }}"
-        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
           value: "PLAINTEXT:PLAINTEXT"
-        - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+        - name: KAFKA_INTER_BROKER_LISTENER_NAME
           value: "PLAINTEXT"
         # Cluster configuration
-        - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+        - name: KAFKA_DEFAULT_REPLICATION_FACTOR
           value: {{ .Values.kafka.config.defaultReplicationFactor | quote }}
-        - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
+        - name: KAFKA_MIN_INSYNC_REPLICAS
           value: {{ .Values.kafka.config.minInsyncReplicas | quote }}
-        - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
           value: {{ .Values.kafka.config.offsetsTopicReplicationFactor | quote }}
-        - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
           value: {{ .Values.kafka.config.defaultReplicationFactor | quote }}
-        - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
           value: {{ .Values.kafka.config.minInsyncReplicas | quote }}
         # Performance tuning
         {{- if .Values.kafka.config.numNetworkThreads }}
-        - name: KAFKA_CFG_NUM_NETWORK_THREADS
+        - name: KAFKA_NUM_NETWORK_THREADS
           value: {{ .Values.kafka.config.numNetworkThreads | quote }}
         {{- end }}
         {{- if .Values.kafka.config.numIoThreads }}
-        - name: KAFKA_CFG_NUM_IO_THREADS
+        - name: KAFKA_NUM_IO_THREADS
           value: {{ .Values.kafka.config.numIoThreads | quote }}
         {{- end }}
         {{- if .Values.kafka.config.socketSendBufferBytes }}
-        - name: KAFKA_CFG_SOCKET_SEND_BUFFER_BYTES
+        - name: KAFKA_SOCKET_SEND_BUFFER_BYTES
           value: {{ .Values.kafka.config.socketSendBufferBytes | quote }}
         {{- end }}
         {{- if .Values.kafka.config.socketReceiveBufferBytes }}
-        - name: KAFKA_CFG_SOCKET_RECEIVE_BUFFER_BYTES
+        - name: KAFKA_SOCKET_RECEIVE_BUFFER_BYTES
           value: {{ .Values.kafka.config.socketReceiveBufferBytes | quote }}
         {{- end }}
         {{- if .Values.kafka.config.socketRequestMaxBytes }}
-        - name: KAFKA_CFG_SOCKET_REQUEST_MAX_BYTES
+        - name: KAFKA_SOCKET_REQUEST_MAX_BYTES
           value: {{ .Values.kafka.config.socketRequestMaxBytes | quote }}
         {{- end }}
         # Retention and compression
         {{- if .Values.kafka.config.logRetentionHours }}
-        - name: KAFKA_CFG_LOG_RETENTION_HOURS
+        - name: KAFKA_LOG_RETENTION_HOURS
           value: {{ .Values.kafka.config.logRetentionHours | quote }}
         {{- end }}
         {{- if .Values.kafka.config.logSegmentBytes }}
-        - name: KAFKA_CFG_LOG_SEGMENT_BYTES
+        - name: KAFKA_LOG_SEGMENT_BYTES
           value: {{ .Values.kafka.config.logSegmentBytes | quote }}
         {{- end }}
         {{- if .Values.kafka.config.compressionType }}
-        - name: KAFKA_CFG_COMPRESSION_TYPE
+        - name: KAFKA_COMPRESSION_TYPE
           value: {{ .Values.kafka.config.compressionType | quote }}
         {{- end }}
         # Auto create topics
-        - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
           value: "true"
         # JVM Options
         {{- if .Values.kafka.jvmOptions }}
         - name: KAFKA_HEAP_OPTS
           value: "-Xms{{ .Values.kafka.jvmOptions.heapSize }} -Xmx{{ .Values.kafka.jvmOptions.maxHeapSize }}"
         {{- end }}
-        # Allow Plaintext listener
-        - name: ALLOW_PLAINTEXT_LISTENER
-          value: "yes"
         resources:
           {{- toYaml .Values.kafka.resources | nindent 10 }}
         volumeMounts:
         - name: data
-          mountPath: /bitnami/kafka
+          mountPath: /var/lib/kafka/data
         livenessProbe:
           tcpSocket:
             port: kafka
-          initialDelaySeconds: 30
+          initialDelaySeconds: 90
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 6
         readinessProbe:
           tcpSocket:
             port: kafka
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
       {{- if not .Values.kafka.persistence.enabled }}
       volumes:
       - name: data

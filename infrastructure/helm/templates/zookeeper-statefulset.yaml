@@ -99,6 +99,19 @@ spec:
       - name: zookeeper
         image: {{ .Values.zookeeper.image.repository }}:{{ .Values.zookeeper.image.tag }}
         imagePullPolicy: {{ .Values.zookeeper.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          {{- if gt (int .Values.zookeeper.replicaCount) 1 }}
+          # Extract ordinal from hostname and calculate server ID (1-based) for ensemble mode
+          export ZOOKEEPER_SERVER_ID=$((${HOSTNAME##*-} + 1))
+          {{- else }}
+          # Standalone mode - always use SERVER_ID=1
+          export ZOOKEEPER_SERVER_ID=1
+          {{- end }}
+          echo "Starting ZooKeeper with SERVER_ID=${ZOOKEEPER_SERVER_ID}"
+          /etc/confluent/docker/run
         ports:
         - containerPort: {{ .Values.zookeeper.service.port }}
           name: client
@@ -107,61 +120,49 @@ spec:
         - containerPort: 3888
           name: leader-election
         env:
-        # Enable ensemble mode
-        - name: ZOO_ENABLE_QUORUM_AUTH
-          value: "no"
-        - name: ZOO_ENABLE_AUTH
-          value: "no"
-        - name: ALLOW_ANONYMOUS_LOGIN
-          value: "yes"
-        # Server ID from pod ordinal
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: ZOO_SERVER_ID
-          value: "$(echo $(($(echo $POD_NAME | sed 's/zookeeper-//') + 1)))"
-        # Zookeeper ensemble
-        - name: ZOO_SERVERS
-          value: "zookeeper-0.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::1 zookeeper-1.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::2 zookeeper-2.zookeeper-headless.{{ .Values.global.namespace }}.svc.cluster.local:2888:3888::3"
+        # Client port
+        - name: ZOOKEEPER_CLIENT_PORT
+          value: "{{ .Values.zookeeper.service.port }}"
+        {{- if gt (int .Values.zookeeper.replicaCount) 1 }}
+        # Zookeeper ensemble configuration (only for multi-node)
+        - name: ZOOKEEPER_SERVERS
+          value: "{{- range $i := until (int .Values.zookeeper.replicaCount) }}zookeeper-{{ $i }}.zookeeper-headless.{{ $.Values.global.namespace }}.svc.cluster.local:2888:3888{{- if ne $i (sub (int $.Values.zookeeper.replicaCount) 1) }};{{- end }}{{- end }}"
+        {{- end }}
         # Performance tuning
-        - name: ZOO_TICK_TIME
+        - name: ZOOKEEPER_TICK_TIME
           value: "2000"
-        - name: ZOO_INIT_LIMIT
+        - name: ZOOKEEPER_INIT_LIMIT
           value: "10"
-        - name: ZOO_SYNC_LIMIT
+        - name: ZOOKEEPER_SYNC_LIMIT
           value: "5"
-        - name: ZOO_MAX_CLIENT_CNXNS
+        - name: ZOOKEEPER_MAX_CLIENT_CNXNS
           value: "60"
-        - name: ZOO_AUTOPURGE_PURGE_INTERVAL
+        - name: ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL
           value: "1"
-        - name: ZOO_AUTOPURGE_SNAP_RETAIN_COUNT
+        - name: ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT
           value: "3"
         resources:
           {{- toYaml .Values.zookeeper.resources | nindent 10 }}
         volumeMounts:
         - name: data
-          mountPath: /bitnami/zookeeper
+          mountPath: /var/lib/zookeeper
         livenessProbe:
-          exec:
-            command:
-            - /bin/bash
-            - -c
-            - echo ruok | nc 127.0.0.1 {{ .Values.zookeeper.service.port }} | grep imok
-          initialDelaySeconds: 30
+          tcpSocket:
+            port: {{ .Values.zookeeper.service.port }}
+          initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 6
         readinessProbe:
           exec:
             command:
-            - /bin/bash
+            - bash
             - -c
-            - echo ruok | nc 127.0.0.1 {{ .Values.zookeeper.service.port }} | grep imok
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+            - "echo srvr | timeout 5 nc localhost {{ .Values.zookeeper.service.port }} | grep Mode || exit 1"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
       {{- if not .Values.zookeeper.persistence.enabled }}
       volumes:
       - name: data

@@ -26,6 +26,8 @@ ibmmq:
     adminPassword: passw0rd
   persistence:
     enabled: false  # Disabled for local development
+    size: 5Gi
+    storageClass: ""  # Use default storage class
   resources:
     requests:
       memory: "512Mi"
@@ -40,11 +42,11 @@ ibmmq:
 # Apache Kafka Configuration - 3 Brokers with Zookeeper
 kafka:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   mode: zookeeper  # Use Zookeeper (not KRaft)
   image:
-    repository: bitnami/kafka
-    tag: "4.0.0"
+    repository: confluentinc/cp-kafka
+    tag: "7.7.1"
     pullPolicy: IfNotPresent
   service:
     type: NodePort
@@ -52,9 +54,9 @@ kafka:
     nodePort: 31092
   config:
     topicName: mq-messages
-    defaultReplicationFactor: 3
-    minInsyncReplicas: 2
-    offsetsTopicReplicationFactor: 3
+    defaultReplicationFactor: 1
+    minInsyncReplicas: 1
+    offsetsTopicReplicationFactor: 1
     # Performance tuning
     numNetworkThreads: 3
     numIoThreads: 4
@@ -66,6 +68,8 @@ kafka:
     compressionType: "lz4"
   persistence:
     enabled: true  # Disabled for local development
+    size: 10Gi
+    storageClass: ""  # Use default storage class
   resources:
     requests:
       memory: "512Mi"
@@ -83,16 +87,18 @@ kafka:
 # Zookeeper Configuration - 3 Instances for Kafka
 zookeeper:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   image:
-    repository: bitnami/zookeeper
-    tag: "3.9.3"
+    repository: confluentinc/cp-zookeeper
+    tag: "7.7.1"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 2181
   persistence:
     enabled: true  # Disabled for local development
+    size: 5Gi
+    storageClass: ""  # Use default storage class
   resources:
     requests:
       memory: "256Mi"

@@ -15,7 +15,15 @@
       "Bash(./deploy.bat)",
       "Bash(./deploy.bat invalid)",
       "Bash(kubectl delete clusterrole prometheus-demo-app --ignore-not-found=true)",
-      "Bash(kubectl delete clusterrolebinding prometheus-demo-app --ignore-not-found=true)"
+      "Bash(kubectl delete clusterrolebinding prometheus-demo-app --ignore-not-found=true)",
+      "WebSearch",
+      "WebFetch(domain:hub.docker.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.confluent.io)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl exec:*)"
     ]
   }
 }
