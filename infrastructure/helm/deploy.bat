@@ -1,17 +1,20 @@
 @echo off
 REM Windows Batch script to deploy the MQ-Kafka Bridge application to Rancher Desktop
-REM Usage: deploy.bat [deploy|undeploy|status] [--skip-build]
+REM Usage: deploy.bat [deploy|undeploy|status] [--skip-build] [--infra-only]
 
 setlocal enabledelayedexpansion
 
 set ACTION=%1
 set SKIP_BUILD=0
-set NAMESPACE=demo-app
+set INFRA_ONLY=0
+set NAMESPACE=spring-boot-demo
+set HELM_EXTRA_ARGS=
 
 REM Parse arguments
 :parse_args
 if "%1"=="" goto done_parsing
 if /i "%1"=="--skip-build" set SKIP_BUILD=1
+if /i "%1"=="--infra-only" set INFRA_ONLY=1
 if /i "%1"=="deploy" set ACTION=deploy
 if /i "%1"=="undeploy" set ACTION=undeploy
 if /i "%1"=="status" set ACTION=status
@@ -21,24 +24,37 @@ goto parse_args
 
 if "%ACTION%"=="" set ACTION=deploy
 
+REM If infra-only mode, disable demo app and skip build
+if %INFRA_ONLY%==1 (
+    set SKIP_BUILD=1
+    set HELM_EXTRA_ARGS=--set demoApp.enabled=false
+)
+
 if /i "%ACTION%"=="deploy" goto deploy
 if /i "%ACTION%"=="undeploy" goto undeploy
 if /i "%ACTION%"=="status" goto status
 
 echo Invalid action: %ACTION%
-echo Usage: deploy.bat [deploy^|undeploy^|status] [--skip-build]
+echo Usage: deploy.bat [deploy^|undeploy^|status] [--skip-build] [--infra-only]
 echo.
 echo Options:
 echo   --skip-build    Skip Docker image build (use existing image)
+echo   --infra-only    Deploy only infrastructure (IBM MQ, Kafka, Prometheus, Grafana)
 exit /b 1
 
 REM ========================================
 REM Deploy function
 REM ========================================
 :deploy
-echo =========================================
-echo   Deploying MQ-Kafka Bridge Application
-echo =========================================
+if %INFRA_ONLY%==1 (
+    echo =========================================
+    echo   Deploying Infrastructure Components
+    echo =========================================
+) else (
+    echo =========================================
+    echo   Deploying MQ-Kafka Bridge Application
+    echo =========================================
+)
 echo.
 
 REM Check prerequisites
@@ -110,15 +126,17 @@ if errorlevel 1 (
 echo.
 
 :create_namespace
-REM Create namespace
-echo [3/5] Creating namespace...
-kubectl create namespace %NAMESPACE% --dry-run=client -o yaml | kubectl apply -f -
-echo   Namespace ready
+REM Helm will create namespace if needed
+echo [3/5] Preparing deployment...
+echo   Namespace: %NAMESPACE%
 echo.
 
 REM Install/Upgrade Helm chart
 echo [4/5] Deploying Helm chart...
-helm upgrade --install demo-app . --namespace %NAMESPACE% --create-namespace --wait --timeout 10m
+if %INFRA_ONLY%==1 (
+    echo   Deploying infrastructure components only ^(demo app disabled^)
+)
+helm upgrade --install demo-app . --namespace %NAMESPACE% --create-namespace --wait --timeout 10m %HELM_EXTRA_ARGS%
 if errorlevel 1 (
     echo ERROR: Helm deployment failed
     echo.
@@ -146,11 +164,13 @@ echo   Deployment Complete!
 echo =========================================
 echo.
 echo Access URLs:
-echo   Demo App:       http://localhost:31080
-echo   Actuator:       http://localhost:31080/actuator
+if %INFRA_ONLY%==0 (
+    echo   Demo App:       http://localhost:31080
+    echo   Actuator:       http://localhost:31080/actuator
+)
 echo   Prometheus:     http://localhost:31090
-echo   Grafana:        http://localhost:31300 (admin/admin)
-echo   IBM MQ Console: https://localhost:31443/ibmmq/console (admin/passw0rd)
+echo   Grafana:        http://localhost:31300 ^(admin/admin^)
+echo   IBM MQ Console: https://localhost:31443/ibmmq/console ^(admin/passw0rd^)
 echo   Kafka:          localhost:31092
 echo.
 echo Pods:
@@ -162,6 +182,12 @@ echo.
 echo StatefulSets:
 kubectl get statefulsets -n %NAMESPACE%
 echo.
+if %INFRA_ONLY%==1 (
+    echo NOTE: Infrastructure-only deployment
+    echo To deploy the demo app later, run: deploy.bat deploy --skip-build
+    echo   ^(or build and deploy with: deploy.bat deploy^)
+    echo.
+)
 goto end
 
 REM ========================================

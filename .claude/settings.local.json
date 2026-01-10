@@ -9,7 +9,13 @@
       "Bash(where:*)",
       "Bash(test:*)",
       "Bash(mvnw.cmd clean compile:*)",
-      "Bash(./mvnw.cmd clean:*)"
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(./mvnw test:*)",
+      "Bash(./mvnw dependency:tree:*)",
+      "Bash(./deploy.bat)",
+      "Bash(./deploy.bat invalid)",
+      "Bash(kubectl delete clusterrole prometheus-demo-app --ignore-not-found=true)",
+      "Bash(kubectl delete clusterrolebinding prometheus-demo-app --ignore-not-found=true)"
     ]
   }
 }

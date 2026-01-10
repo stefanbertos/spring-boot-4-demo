@@ -33,8 +33,6 @@
         <spotbugs.version>4.8.6.2</spotbugs.version>
         <checkstyle.version>10.17.0</checkstyle.version>
         <pmd.version>7.4.0</pmd.version>
-        <spring-modulith.version>1.3.0</spring-modulith.version>
-        <archunit.version>1.3.0</archunit.version>
     </properties>
 
     <dependencyManagement>
@@ -52,23 +50,6 @@
                 <groupId>com.ibm.mq</groupId>
                 <artifactId>mq-jms-spring-boot-starter</artifactId>
                 <version>${ibm.mq.version}</version>
-            </dependency>
-
-            <!-- Spring Modulith BOM -->
-            <dependency>
-                <groupId>org.springframework.modulith</groupId>
-                <artifactId>spring-modulith-bom</artifactId>
-                <version>${spring-modulith.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- ArchUnit -->
-            <dependency>
-                <groupId>com.tngtech.archunit</groupId>
-                <artifactId>archunit-junit5</artifactId>
-                <version>${archunit.version}</version>
-                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

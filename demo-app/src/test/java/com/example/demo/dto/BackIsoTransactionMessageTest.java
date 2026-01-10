@@ -1,6 +1,6 @@
 package com.example.demo.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BackIsoTransactionMessageTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .build();
 
     @Test
     void shouldCreateBackIsoTransactionMessage() {

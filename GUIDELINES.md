@@ -66,6 +66,31 @@ public class TransactionDto {
 }
 ```
 
+### 3.1. Jackson 3 (JSON Serialization)
+- **ALWAYS use `JsonMapper` instead of `ObjectMapper`** (Jackson 3 best practice)
+- Jackson 3 introduces an immutable `JsonMapper` replacing the mutable `ObjectMapper` from Jackson 2
+- Use `JsonMapper.builder()` to configure and build the mapper
+- Always enable module discovery with `.findAndAddModules()` to support Java 8 date/time types
+
+```java
+// ✅ Good - Jackson 3 style
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
+private final JsonMapper jsonMapper = JsonMapper.builder()
+        .findAndAddModules()
+        .build();
+
+// ❌ Bad - Jackson 2 style (deprecated in Jackson 3)
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+private final ObjectMapper objectMapper = new ObjectMapper()
+        .findAndRegisterModules();
+```
+
+**Required Dependencies:**
+- `com.fasterxml.jackson.datatype:jackson-datatype-jsr310` - For Java 8 date/time support
+- This is included in `spring-boot-starter-jackson` but should be explicitly declared for clarity
+
 ### 4. Testing Standards
 
 #### Unit Tests
@@ -194,8 +219,6 @@ com.example.demo
 - **SpotBugs**: Detects bugs in Java code through static analysis
 - **Checkstyle**: Enforces coding standards and style guidelines
 - **PMD**: Finds potential problems like unused variables, empty catch blocks, unnecessary object creation
-- **ArchUnit**: Tests and validates architecture rules
-- **Spring Modulith**: Supports modular monolith architecture
 
 ### Infrastructure
 - IBM MQ for message queuing

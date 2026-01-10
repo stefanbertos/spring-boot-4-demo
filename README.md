@@ -301,8 +301,6 @@ See [GUIDELINES.md](GUIDELINES.md) for comprehensive development standards inclu
 - Java records for DTOs
 - 100% test coverage requirements
 - Code quality standards
-- Architecture testing with ArchUnit
-- Modularity with Spring Modulith
 
 ## Troubleshooting
 
