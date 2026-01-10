@@ -2,7 +2,7 @@
 # This configuration provides a production-like environment locally
 
 global:
-  namespace: demo-app
+  namespace: spring-boot-demo
   environment: local-prod
 
 # IBM MQ Configuration - Single Instance
@@ -44,7 +44,7 @@ kafka:
   mode: zookeeper  # Use Zookeeper (not KRaft)
   image:
     repository: bitnami/kafka
-    tag: "3.6.1"
+    tag: "4.0.0"
     pullPolicy: IfNotPresent
   service:
     type: NodePort
@@ -65,7 +65,7 @@ kafka:
     logSegmentBytes: 1073741824
     compressionType: "lz4"
   persistence:
-    enabled: false  # Disabled for local development
+    enabled: true  # Disabled for local development
   resources:
     requests:
       memory: "512Mi"
@@ -86,13 +86,13 @@ zookeeper:
   replicaCount: 3
   image:
     repository: bitnami/zookeeper
-    tag: "3.9.1"
+    tag: "3.9.3"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 2181
   persistence:
-    enabled: false  # Disabled for local development
+    enabled: true  # Disabled for local development
   resources:
     requests:
       memory: "256Mi"

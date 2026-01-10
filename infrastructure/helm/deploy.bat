@@ -136,7 +136,7 @@ echo [4/5] Deploying Helm chart...
 if %INFRA_ONLY%==1 (
     echo   Deploying infrastructure components only ^(demo app disabled^)
 )
-helm upgrade --install demo-app . --namespace %NAMESPACE% --create-namespace --wait --timeout 10m %HELM_EXTRA_ARGS%
+helm upgrade --install demo . --namespace %NAMESPACE% --create-namespace --wait --timeout 10m %HELM_EXTRA_ARGS%
 if errorlevel 1 (
     echo ERROR: Helm deployment failed
     echo.
@@ -195,7 +195,7 @@ REM Undeploy function
 REM ========================================
 :undeploy
 echo Undeploying application...
-helm uninstall demo-app --namespace %NAMESPACE%
+helm uninstall demo --namespace %NAMESPACE%
 echo.
 echo Deleting namespace...
 kubectl delete namespace %NAMESPACE% --ignore-not-found=true
