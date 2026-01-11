@@ -37,7 +37,8 @@
       "Bash(docker save:*)",
       "Bash(nerdctl:*)",
       "Bash(helm upgrade:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cat:*)"
     ]
   }
 }

@@ -131,4 +131,27 @@ data:
           - source_labels: [__meta_kubernetes_pod_ip]
             target_label: __address__
             replacement: '${1}:3000'
+
+      # Scrape MQ Performance Test Jobs
+      - job_name: 'mq-performance-test'
+        metrics_path: '/actuator/prometheus'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Values.global.namespace }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: mq-performance-test
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_label_test_run_id]
+            target_label: test_run_id
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_ip]
+            target_label: __address__
+            replacement: '${1}:8080'
 {{- end }}

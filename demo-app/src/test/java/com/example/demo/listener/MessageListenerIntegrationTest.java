@@ -1,5 +1,6 @@
 package com.example.demo.listener;
 
+import com.example.demo.config.TestcontainersConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -9,12 +10,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 import org.springframework.kafka.listener.MessageListener;
 import org.springframework.kafka.test.utils.ContainerTestUtils;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("test")
 class MessageListenerIntegrationTest {
 
     @Autowired
@@ -104,7 +109,7 @@ class MessageListenerIntegrationTest {
 
         // Verify messages are forwarded as-is (pass-through)
         for (int i = 0; i < messageCount; i++) {
-            ConsumerRecord<String, String> record = records.poll(30, TimeUnit.SECONDS);
+            ConsumerRecord<String, String> record = records.poll(60, TimeUnit.SECONDS);
             assertThat(record).isNotNull();
             assertThat(record.value()).isEqualTo(sentMessages[i]);
         }

@@ -1,0 +1,83 @@
+{{- if .Values.performanceTest.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mq-performance-test-{{ .Values.performanceTest.runId }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mq-performance-test
+    test-run-id: {{ .Values.performanceTest.runId }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/actuator/prometheus"
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: {{ .Values.performanceTest.ttlAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: mq-performance-test
+        test-run-id: {{ .Values.performanceTest.runId }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: performance-test
+        image: {{ .Values.performanceTest.image.repository }}:{{ .Values.performanceTest.image.tag }}
+        imagePullPolicy: {{ .Values.performanceTest.image.pullPolicy }}
+        env:
+        # MQ Configuration
+        - name: IBM_MQ_QUEUEMANAGER
+          value: {{ .Values.ibmmq.config.queueManager }}
+        - name: IBM_MQ_CHANNEL
+          value: {{ .Values.ibmmq.config.channel }}
+        - name: IBM_MQ_CONNNAME
+          value: "ibmmq:{{ .Values.ibmmq.service.port }}"
+        - name: IBM_MQ_USER
+          value: "admin"
+        - name: IBM_MQ_PASSWORD
+          value: {{ .Values.ibmmq.config.adminPassword }}
+        - name: IBM_MQ_QUEUENAME
+          value: {{ .Values.ibmmq.config.queueName }}
+
+        # Performance Test Configuration
+        - name: TEST_RUN_ID
+          value: {{ .Values.performanceTest.runId | quote }}
+        - name: MESSAGE_COUNT
+          value: {{ .Values.performanceTest.messageCount | quote }}
+        - name: MESSAGE_SIZE
+          value: {{ .Values.performanceTest.messageSize | quote }}
+        - name: KEEP_ALIVE_MINUTES
+          value: {{ .Values.performanceTest.keepAliveMinutes | quote }}
+
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+
+        resources:
+          {{- toYaml .Values.performanceTest.resources | nindent 10 }}
+---
+# Headless service for Prometheus scraping
+apiVersion: v1
+kind: Service
+metadata:
+  name: mq-performance-test-{{ .Values.performanceTest.runId }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mq-performance-test
+    test-run-id: {{ .Values.performanceTest.runId }}
+spec:
+  selector:
+    app: mq-performance-test
+    test-run-id: {{ .Values.performanceTest.runId }}
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  clusterIP: None
+{{- end }}

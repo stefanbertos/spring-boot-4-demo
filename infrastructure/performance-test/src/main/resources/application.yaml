@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: mq-performance-test
+
+  # Enable virtual threads for better concurrency
+  threads:
+    virtual:
+      enabled: true
+
+  # JMS configuration (auto-startup disabled since we use CommandLineRunner)
+  jms:
+    listener:
+      auto-startup: false
+
+# IBM MQ Configuration
+# These values will be overridden by environment variables in Kubernetes
+ibm:
+  mq:
+    queue-manager: QM1
+    channel: DEV.ADMIN.SVRCONN
+    conn-name: localhost(1414)
+    user: admin
+    password: passw0rd
+    queue-name: DEV.QUEUE.1
+
+# Performance Test Configuration
+# These values can be overridden via environment variables
+performance-test:
+  test-run-id: ${TEST_RUN_ID:manual}
+  message-count: ${MESSAGE_COUNT:10000}
+  message-size: ${MESSAGE_SIZE:1024}
+  keep-alive-minutes: ${KEEP_ALIVE_MINUTES:5}
+  queue-manager: ${ibm.mq.queue-manager}
+  queue-name: ${ibm.mq.queue-name}
+
+# Actuator and Metrics Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      test_run_id: ${performance-test.test-run-id}
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        perf.test.message.send.time: true
+
+# Web server configuration
+server:
+  port: 8080
+
+# Logging configuration
+logging:
+  level:
+    com.example.perftest: INFO
+    org.springframework: WARN
+    com.ibm.mq: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n"

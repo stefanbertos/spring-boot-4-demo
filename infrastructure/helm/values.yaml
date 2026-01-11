@@ -208,3 +208,23 @@ monitoring:
     enabled: false  # Disable for local (Prometheus Operator not required)
   podMonitor:
     enabled: false
+
+# Performance Testing Configuration
+performanceTest:
+  enabled: false  # Set to true when running performance tests
+  runId: "manual"  # Unique identifier for test run (use timestamp or version)
+  messageCount: 10000  # Number of messages to send
+  messageSize: 1024  # Size of each message in bytes
+  keepAliveMinutes: 5  # How long to keep app running after test (for metrics scraping)
+  ttlAfterFinished: 3600  # Keep job for 1 hour after completion
+  image:
+    repository: mq-performance-test
+    tag: latest
+    pullPolicy: Never  # Use local image only (for Rancher Desktop/K3s)
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"

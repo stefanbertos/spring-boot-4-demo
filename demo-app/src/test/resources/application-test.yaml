@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: demo-test
+
+  # Kafka configuration (auto-configured by @ServiceConnection)
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: test-group
+    producer:
+      retries: 3
+
+  # JMS/MQ configuration
+  jms:
+    listener:
+      auto-startup: true
+
+# IBM MQ configuration (matches production setup)
+ibm:
+  mq:
+    queue-manager: QM1
+    channel: DEV.ADMIN.SVRCONN
+    # conn-name is set dynamically by TestcontainersConfiguration
+    user: admin
+    password: passw0rd
+    queue-name: DEV.QUEUE.1
+
+# Kafka topic configuration
+kafka:
+  topic:
+    name: mq-messages
+
+# Actuator configuration (minimal for tests)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  metrics:
+    export:
+      prometheus:
+        enabled: false
+
+# Logging configuration for tests
+logging:
+  level:
+    com.example.demo: INFO
+    org.springframework: WARN
+    org.apache.kafka: WARN
+    com.ibm.mq: WARN
