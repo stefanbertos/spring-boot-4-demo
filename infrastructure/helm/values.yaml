@@ -1,9 +1,9 @@
-# Production-like values for Rancher Desktop deployment
-# This configuration provides a production-like environment locally
+# Production values for deployment
+# This configuration provides a production-ready environment with high availability
 
 global:
   namespace: spring-boot-demo
-  environment: local-prod
+  environment: production
 
 # IBM MQ Configuration - Single Instance
 ibmmq:
@@ -39,76 +39,11 @@ ibmmq:
     enabled: false
   antiAffinity: ""
 
-# Apache Kafka Configuration - 3 Brokers with Zookeeper
-kafka:
-  enabled: true
-  replicaCount: 1
-  mode: zookeeper  # Use Zookeeper (not KRaft)
-  image:
-    repository: confluentinc/cp-kafka
-    tag: "7.7.1"
-    pullPolicy: IfNotPresent
-  service:
-    type: NodePort
-    port: 9092
-    nodePort: 31092
-  config:
-    topicName: mq-messages
-    defaultReplicationFactor: 1
-    minInsyncReplicas: 1
-    offsetsTopicReplicationFactor: 1
-    # Performance tuning
-    numNetworkThreads: 3
-    numIoThreads: 4
-    socketSendBufferBytes: 102400
-    socketReceiveBufferBytes: 102400
-    socketRequestMaxBytes: 104857600
-    logRetentionHours: 168
-    logSegmentBytes: 1073741824
-    compressionType: "lz4"
-  persistence:
-    enabled: true  # Disabled for local development
-    size: 10Gi
-    storageClass: ""  # Use default storage class
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "250m"
-    limits:
-      memory: "1Gi"
-      cpu: "500m"
-  podDisruptionBudget:
-    enabled: false
-  antiAffinity: ""
-  jvmOptions:
-    heapSize: "384m"
-    maxHeapSize: "384m"
-
-# Zookeeper Configuration - 3 Instances for Kafka
-zookeeper:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: confluentinc/cp-zookeeper
-    tag: "7.7.1"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 2181
-  persistence:
-    enabled: true  # Disabled for local development
-    size: 5Gi
-    storageClass: ""  # Use default storage class
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
-      cpu: "200m"
-  podDisruptionBudget:
-    enabled: false
-  antiAffinity: ""
+# Apache Kafka Configuration
+# NOTE: Kafka is now deployed using Strimzi Operator (KRaft mode)
+# See infrastructure/strimzi/ for deployment files
+# Deploy with: ./infrastructure/strimzi/deploy.sh (or deploy.ps1 on Windows)
+# Bootstrap server: demo-kafka-cluster-kafka-bootstrap:9092
 
 # Prometheus Configuration - Single Instance
 prometheus:

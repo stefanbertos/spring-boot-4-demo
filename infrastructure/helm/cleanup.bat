@@ -1,38 +1,76 @@
 @echo off
-REM Complete cleanup script for both old and new deployments
+REM Complete cleanup script for Helm and Strimzi Kafka
 
-echo Cleaning up all resources...
+echo =========================================
+echo   Cleanup - Demo App and Infrastructure
+echo =========================================
 echo.
 
-echo [1/5] Uninstalling Helm releases...
+echo [1/6] Uninstalling Helm releases...
 helm uninstall demo --namespace spring-boot-demo --ignore-not-found 2>nul
+if errorlevel 1 (
+    echo   No Helm release found or already uninstalled
+) else (
+    echo   Helm release uninstalled
+)
+
+echo.
+echo [2/6] Deleting cluster-scoped resources...
+kubectl delete clusterrole prometheus-demo-app --ignore-not-found=true 2>nul
+kubectl delete clusterrolebinding prometheus-demo-app --ignore-not-found=true 2>nul
 echo   Done
 
 echo.
-echo [2/5] Deleting namespaces...
-kubectl delete namespace spring-boot-demo --ignore-not-found=true
-echo   Done
-
-echo.
-echo [3/5] Deleting cluster-scoped resources...
-kubectl delete clusterrole prometheus-demo-app --ignore-not-found=true
-kubectl delete clusterrolebinding prometheus-demo-app --ignore-not-found=true
-echo   Done
-
-echo.
-echo [4/5] Waiting for cleanup to complete...
+echo [3/6] Waiting for resources to terminate...
 timeout /t 5 /nobreak >nul
 echo   Done
 
 echo.
-echo [5/5] Verifying cleanup...
-kubectl get namespace spring-boot-demo 2>nul
+echo [4/6] Cleaning up Strimzi Kafka...
+echo   Calling Strimzi cleanup script...
+cd ..\strimzi
+call cleanup.bat
+cd ..\helm
+echo   Strimzi Kafka cleanup complete
+
+echo.
+echo [5/6] Deleting namespace (if empty)...
+kubectl delete namespace spring-boot-demo --ignore-not-found=true 2>nul
 if errorlevel 1 (
-    echo   Namespace spring-boot-demo: DELETED
+    echo   Namespace already deleted
 ) else (
-    echo   WARNING: Namespace spring-boot-demo still exists
+    echo   Namespace deleted
 )
 
 echo.
-echo Cleanup complete! You can now run: deploy.bat deploy --infra-only
+echo [6/6] Verifying cleanup...
+echo.
+echo Checking Helm namespace:
+kubectl get namespace spring-boot-demo 2>nul
+if errorlevel 1 (
+    echo   ✓ Namespace spring-boot-demo: DELETED
+) else (
+    echo   ⚠ WARNING: Namespace spring-boot-demo still exists
+)
+
+echo.
+echo Checking Strimzi operator namespace:
+kubectl get namespace strimzi-operator 2>nul
+if errorlevel 1 (
+    echo   ✓ Namespace strimzi-operator: DELETED
+) else (
+    echo   ⚠ Namespace strimzi-operator still exists
+)
+
+echo.
+echo =========================================
+echo   Cleanup Complete!
+echo =========================================
+echo.
+echo To redeploy everything, run:
+echo   deploy.bat deploy
+echo.
+echo To deploy infrastructure only:
+echo   deploy.bat deploy --infra-only
+echo.
 exit /b 0

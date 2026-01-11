@@ -58,7 +58,7 @@ if %INFRA_ONLY%==1 (
 echo.
 
 REM Check prerequisites
-echo [1/5] Checking prerequisites...
+echo [1/6] Checking prerequisites...
 kubectl version --client >nul 2>&1
 if errorlevel 1 (
     echo ERROR: kubectl not found. Please install kubectl.
@@ -81,10 +81,24 @@ if errorlevel 1 (
 echo   Docker found
 echo.
 
+REM Deploy Strimzi Kafka (first!)
+echo [2/6] Deploying Strimzi Kafka cluster...
+echo   Calling strimzi deployment script...
+cd ..\strimzi
+call deploy.bat
+if errorlevel 1 (
+    echo ERROR: Strimzi Kafka deployment failed
+    cd ..\helm
+    exit /b 1
+)
+cd ..\helm
+echo   Strimzi Kafka deployed successfully
+echo.
+
 REM Build Docker image
 if %SKIP_BUILD%==1 goto skip_build
 
-echo [2/5] Building Docker image...
+echo [3/6] Building Docker image...
 cd ..\..
 if not exist "mvnw.cmd" (
     echo ERROR: Maven wrapper not found at project root
@@ -114,7 +128,7 @@ echo.
 goto create_namespace
 
 :skip_build
-echo [2/5] Skipping Docker image build...
+echo [3/6] Skipping Docker image build...
 docker images demo-app:latest --format "{{.Repository}}:{{.Tag}}" 2>nul | findstr "demo-app:latest" >nul 2>&1
 if errorlevel 1 (
     echo WARNING: demo-app:latest image not found
@@ -127,12 +141,12 @@ echo.
 
 :create_namespace
 REM Helm will create namespace if needed
-echo [3/5] Preparing deployment...
+echo [4/6] Preparing deployment...
 echo   Namespace: %NAMESPACE%
 echo.
 
 REM Install/Upgrade Helm chart
-echo [4/5] Deploying Helm chart...
+echo [5/6] Deploying Helm chart...
 if %INFRA_ONLY%==1 (
     echo   Deploying infrastructure components only ^(demo app disabled^)
 )
@@ -149,7 +163,7 @@ echo   Helm chart deployed successfully
 echo.
 
 REM Wait for pods
-echo [5/5] Waiting for pods to be ready...
+echo [6/6] Waiting for pods to be ready...
 echo   This may take 2-3 minutes...
 kubectl wait --for=condition=ready pod --all -n %NAMESPACE% --timeout=300s
 if errorlevel 1 (
@@ -171,7 +185,7 @@ if %INFRA_ONLY%==0 (
 echo   Prometheus:     http://localhost:31090
 echo   Grafana:        http://localhost:31300 ^(admin/admin^)
 echo   IBM MQ Console: https://localhost:31443/ibmmq/console ^(admin/passw0rd^)
-echo   Kafka:          localhost:31092
+echo   Kafka ^(Strimzi^): demo-kafka-cluster-kafka-bootstrap:9092
 echo.
 echo Pods:
 kubectl get pods -n %NAMESPACE%
@@ -181,6 +195,12 @@ kubectl get services -n %NAMESPACE%
 echo.
 echo StatefulSets:
 kubectl get statefulsets -n %NAMESPACE%
+echo.
+echo Kafka Cluster ^(Strimzi^):
+kubectl get kafka -n %NAMESPACE% 2>nul
+if errorlevel 1 (
+    echo   Strimzi Kafka not deployed yet
+)
 echo.
 if %INFRA_ONLY%==1 (
     echo NOTE: Infrastructure-only deployment
@@ -207,6 +227,12 @@ REM Status function
 REM ========================================
 :status
 echo Deployment Status:
+echo.
+echo Kafka Cluster ^(Strimzi^):
+kubectl get kafka -n %NAMESPACE% 2>nul
+if errorlevel 1 (
+    echo   Strimzi Kafka not deployed
+)
 echo.
 echo Pods:
 kubectl get pods -n %NAMESPACE%
