@@ -6,7 +6,7 @@ replicas: 1
 
 # Namespaces to watch (where Kafka clusters will be deployed)
 watchNamespaces:
-  - spring-boot-demo
+  - demo
 
 # Resource configuration
 resources:

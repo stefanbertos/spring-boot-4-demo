@@ -7,7 +7,7 @@ setlocal enabledelayedexpansion
 set ACTION=%1
 set SKIP_BUILD=0
 set INFRA_ONLY=0
-set NAMESPACE=spring-boot-demo
+set NAMESPACE=demo
 set HELM_EXTRA_ARGS=
 
 REM Parse arguments
@@ -185,7 +185,7 @@ if %INFRA_ONLY%==0 (
 echo   Prometheus:     http://localhost:31090
 echo   Grafana:        http://localhost:31300 ^(admin/admin^)
 echo   IBM MQ Console: https://localhost:31443/ibmmq/console ^(admin/passw0rd^)
-echo   Kafka ^(Strimzi^): demo-kafka-cluster-kafka-bootstrap:9092
+echo   Kafka ^(Strimzi^): kafka-cluster-kafka-bootstrap:9092
 echo.
 echo Pods:
 kubectl get pods -n %NAMESPACE%

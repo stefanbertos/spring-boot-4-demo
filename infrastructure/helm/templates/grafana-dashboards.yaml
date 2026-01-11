@@ -1,0 +1,410 @@
+{{- if .Values.grafana.enabled }}
+---
+# Grafana Datasource Provisioning
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus:{{ .Values.prometheus.service.port }}
+      isDefault: true
+      editable: false
+---
+# Grafana Dashboard Provisioning Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 30
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards
+---
+# Node Exporter Dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-node-exporter
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+    dashboard: node-exporter
+data:
+  node-exporter.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "percent"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 1,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }} CPU Usage",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "percent"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 2,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }} Memory Usage",
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 3,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "irate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }} - {{ "{{" }}device{{ "}}" }} RX",
+              "refId": "A"
+            },
+            {
+              "expr": "irate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }} - {{ "{{" }}device{{ "}}" }} TX",
+              "refId": "B"
+            }
+          ],
+          "title": "Network Traffic",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "percent"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 4,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}) * 100)",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }} Disk Usage",
+              "refId": "A"
+            }
+          ],
+          "title": "Disk Usage",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["node-exporter", "infrastructure"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Node Exporter - System Metrics",
+      "uid": "node-exporter",
+      "version": 0
+    }
+---
+# Spring Boot Application Dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-spring-boot
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+    dashboard: spring-boot
+data:
+  spring-boot.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "id": null,
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}
+            }
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "id": 1,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "up{job=\"demo-app\"}", "refId": "A"}],
+          "title": "Application Status",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "id": 2,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [{"expr": "jvm_memory_used_bytes{job=\"demo-app\"}", "legendFormat": "{{ "{{" }}area{{ "}}" }} - {{ "{{" }}id{{ "}}" }}", "refId": "A"}],
+          "title": "JVM Memory Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "id": 3,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [{"expr": "rate(http_server_requests_seconds_count{job=\"demo-app\"}[5m])", "legendFormat": "{{ "{{" }}uri{{ "}}" }} - {{ "{{" }}method{{ "}}" }} ({{ "{{" }}status{{ "}}" }})", "refId": "A"}],
+          "title": "HTTP Request Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "s"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "id": 4,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [{"expr": "rate(http_server_requests_seconds_sum{job=\"demo-app\"}[5m]) / rate(http_server_requests_seconds_count{job=\"demo-app\"}[5m])", "legendFormat": "{{ "{{" }}uri{{ "}}" }} - {{ "{{" }}method{{ "}}" }}", "refId": "A"}],
+          "title": "HTTP Request Duration",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "id": 5,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [
+            {"expr": "jvm_threads_live_threads{job=\"demo-app\"}", "legendFormat": "Live Threads", "refId": "A"},
+            {"expr": "jvm_threads_daemon_threads{job=\"demo-app\"}", "legendFormat": "Daemon Threads", "refId": "B"}
+          ],
+          "title": "JVM Threads",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["spring-boot", "application"],
+      "time": {"from": "now-1h", "to": "now"},
+      "title": "Spring Boot Application",
+      "uid": "spring-boot-app",
+      "version": 0
+    }
+---
+# Kafka Dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-kafka
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+    dashboard: kafka
+data:
+  kafka.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "id": null,
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 1,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [{"expr": "rate(kafka_server_brokertopicmetrics_messagesinpersec[5m])", "legendFormat": "{{ "{{" }}topic{{ "}}" }} - Messages In", "refId": "A"}],
+          "title": "Kafka Messages In Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 2,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [
+            {"expr": "rate(kafka_server_brokertopicmetrics_bytesinpersec[5m])", "legendFormat": "{{ "{{" }}topic{{ "}}" }} - Bytes In", "refId": "A"},
+            {"expr": "rate(kafka_server_brokertopicmetrics_bytesoutpersec[5m])", "legendFormat": "{{ "{{" }}topic{{ "}}" }} - Bytes Out", "refId": "B"}
+          ],
+          "title": "Kafka Throughput",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "yellow", "value": 2}, {"color": "red", "value": 3}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+          "id": 3,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "count(up{job=\"kafka-cluster-kafka\"})", "refId": "A"}],
+          "title": "Active Kafka Brokers",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "id": 4,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [{"expr": "jvm_memory_bytes_used{job=\"kafka-cluster-kafka\"}", "legendFormat": "{{ "{{" }}pod{{ "}}" }} - {{ "{{" }}area{{ "}}" }}", "refId": "A"}],
+          "title": "Kafka JVM Memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "id": 5,
+          "options": {"legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}},
+          "targets": [
+            {"expr": "kafka_server_replicamanager_partitioncount", "legendFormat": "{{ "{{" }}pod{{ "}}" }} - Partitions", "refId": "A"},
+            {"expr": "kafka_server_replicamanager_leadercount", "legendFormat": "{{ "{{" }}pod{{ "}}" }} - Leaders", "refId": "B"}
+          ],
+          "title": "Kafka Partitions & Leaders",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["kafka", "strimzi"],
+      "time": {"from": "now-1h", "to": "now"},
+      "title": "Kafka Cluster Metrics",
+      "uid": "kafka-cluster",
+      "version": 0
+    }
+{{- end }}

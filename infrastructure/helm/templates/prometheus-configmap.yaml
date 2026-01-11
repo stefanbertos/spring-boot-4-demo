@@ -17,7 +17,7 @@ data:
           - targets: ['localhost:9090']
 
       # Scrape Spring Boot application
-      - job_name: 'spring-boot-app'
+      - job_name: 'demo-app'
         metrics_path: '/actuator/prometheus'
         static_configs:
           - targets: ['demo-app:8080']
@@ -77,37 +77,27 @@ data:
             action: replace
             target_label: app
 
-      # Scrape Kafka metrics (JMX exporter if configured)
-      - job_name: 'kafka'
+      # Scrape Strimzi Kafka brokers (JMX exporter on port 9404)
+      - job_name: 'kafka-cluster-kafka'
         kubernetes_sd_configs:
           - role: pod
             namespaces:
               names:
                 - {{ .Values.global.namespace }}
         relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app]
+          - source_labels: [__meta_kubernetes_pod_label_strimzi_io_cluster]
             action: keep
-            regex: kafka
+            regex: kafka-cluster
+          - source_labels: [__meta_kubernetes_pod_label_strimzi_io_name]
+            action: keep
+            regex: kafka-cluster-kafka
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
-
-      # Scrape Zookeeper metrics
-      - job_name: 'zookeeper'
-        kubernetes_sd_configs:
-          - role: pod
-            namespaces:
-              names:
-                - {{ .Values.global.namespace }}
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: zookeeper
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_ip]
+            target_label: __address__
+            replacement: '${1}:9404'
 
       # Scrape IBM MQ metrics (if exposed)
       - job_name: 'ibmmq'

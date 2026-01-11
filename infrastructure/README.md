@@ -44,6 +44,7 @@ deploy.bat deploy
 
 Includes:
 - Strimzi Kafka (3 brokers, KRaft mode)
+- Kafka UI (web interface)
 - Demo Application
 - IBM MQ
 - Prometheus + Grafana
@@ -58,6 +59,7 @@ deploy.bat deploy --infra-only
 
 Includes:
 - Strimzi Kafka (3 brokers)
+- Kafka UI
 - IBM MQ
 - Prometheus + Grafana
 
@@ -102,7 +104,7 @@ This will:
 - Replication factor: 3
 - Min in-sync replicas: 2
 - Storage: 20Gi per broker (60Gi total)
-- Bootstrap server: `demo-kafka-cluster-kafka-bootstrap:9092`
+- Bootstrap server: `kafka-cluster-kafka-bootstrap:9092`
 
 **Why Strimzi?**
 - ✅ Built-in health checks (works perfectly!)
@@ -126,8 +128,18 @@ This will:
 ### Kafka (Strimzi)
 
 - 3 brokers (KRaft mode)
-- Bootstrap: demo-kafka-cluster-kafka-bootstrap:9092
+- Bootstrap: kafka-cluster-kafka-bootstrap:9092
 - No external access by default (internal only)
+
+### Kafka UI
+
+- Web-based Kafka management interface
+- URL: http://localhost:31800
+- Features:
+  - View topics, partitions, and messages
+  - Publish and consume messages
+  - Monitor consumer groups and lag
+  - Manage Kafka cluster configuration
 
 ### Prometheus
 
@@ -140,16 +152,21 @@ This will:
 - Visualization dashboards
 - URL: http://localhost:31300
 - Credentials: admin/admin
-- Pre-configured dashboards for MQ and Kafka
+- Pre-configured dashboards:
+  - **Node Exporter - System Metrics**: CPU, memory, disk, network
+  - **Spring Boot Application**: JVM memory, HTTP requests, threads
+  - **Kafka Cluster Metrics**: Messages, throughput, brokers, partitions
+- Auto-configured Prometheus datasource
 
 ## Access URLs (After Deployment)
 
 - **Demo App**: http://localhost:31080
 - **Actuator**: http://localhost:31080/actuator
+- **Kafka UI**: http://localhost:31800
 - **Prometheus**: http://localhost:31090
 - **Grafana**: http://localhost:31300 (admin/admin)
 - **IBM MQ Console**: https://localhost:31443/ibmmq/console (admin/passw0rd)
-- **Kafka**: demo-kafka-cluster-kafka-bootstrap:9092 (internal)
+- **Kafka**: kafka-cluster-kafka-bootstrap:9092 (internal)
 
 ## Status and Troubleshooting
 
@@ -170,10 +187,10 @@ Shows:
 ### Check Kafka Specifically
 
 ```bash
-kubectl get kafka -n spring-boot-demo
+kubectl get kafka -n demo
 # Should show: READY = True
 
-kubectl get pods -n spring-boot-demo -l strimzi.io/cluster=demo-kafka-cluster
+kubectl get pods -n demo -l strimzi.io/cluster=kafka-cluster
 # Should show 3 kafka pods running
 ```
 
@@ -181,12 +198,12 @@ kubectl get pods -n spring-boot-demo -l strimzi.io/cluster=demo-kafka-cluster
 
 **Application:**
 ```bash
-kubectl logs -n spring-boot-demo -l app=demo-app -f
+kubectl logs -n demo -l app=demo-app -f
 ```
 
 **Kafka:**
 ```bash
-kubectl logs -n spring-boot-demo demo-kafka-cluster-kafka-0 -f
+kubectl logs -n demo kafka-cluster-kafka-0 -f
 ```
 
 **Strimzi Operator:**
@@ -198,12 +215,12 @@ kubectl logs -n strimzi-operator -l app.kubernetes.io/name=strimzi-cluster-opera
 
 **Kafka pods not starting:**
 - Check Strimzi operator logs
-- Verify PVCs are bound: `kubectl get pvc -n spring-boot-demo`
+- Verify PVCs are bound: `kubectl get pvc -n demo`
 - Check operator status: `kubectl get pods -n strimzi-operator`
 
 **Application can't connect to Kafka:**
-- Verify bootstrap server: `demo-kafka-cluster-kafka-bootstrap:9092`
-- Check Kafka is ready: `kubectl get kafka -n spring-boot-demo`
+- Verify bootstrap server: `kafka-cluster-kafka-bootstrap:9092`
+- Check Kafka is ready: `kubectl get kafka -n demo`
 - Check network connectivity
 
 ## Advanced Usage
@@ -222,7 +239,7 @@ deploy.bat
 ### Scale Kafka Brokers
 
 ```bash
-kubectl patch kafka demo-kafka-cluster -n spring-boot-demo \
+kubectl patch kafka kafka-cluster -n demo \
   --type merge -p '{"spec":{"kafka":{"replicas":5}}}'
 ```
 
@@ -232,8 +249,8 @@ kubectl patch kafka demo-kafka-cluster -n spring-boot-demo \
 kubectl run kafka-producer -ti --rm=true \
   --image=quay.io/strimzi/kafka:latest-kafka-3.9.0 \
   --restart=Never \
-  -n spring-boot-demo -- bin/kafka-topics.sh \
-  --bootstrap-server demo-kafka-cluster-kafka-bootstrap:9092 \
+  -n demo -- bin/kafka-topics.sh \
+  --bootstrap-server kafka-cluster-kafka-bootstrap:9092 \
   --create --topic my-topic \
   --replication-factor 3 --partitions 3
 ```
@@ -252,6 +269,7 @@ kubectl run kafka-producer -ti --rm=true \
 |-----------|------|--------|---------|
 | **Kafka (Strimzi)** | 3 | 3-6Gi | 60Gi |
 | **Entity Operator** | 1 | ~256Mi | - |
+| **Kafka UI** | 1 | 256Mi-512Mi | - |
 | **IBM MQ** | 1 | 512Mi-1Gi | 5Gi (optional) |
 | **Demo App** | 1 | 512Mi-1Gi | - |
 | **Prometheus** | 1 | 256Mi-512Mi | - |
@@ -287,6 +305,7 @@ kubectl run kafka-producer -ti --rm=true \
 
 ✅ **One command** deploys everything
 ✅ **Kafka is deployed first** (Strimzi, production-ready)
+✅ **Kafka UI** for easy management and monitoring
 ✅ **Application depends on Kafka** (deployed after)
 ✅ **All infrastructure** included (MQ, Prometheus, Grafana)
 ✅ **Single cleanup** script removes everything

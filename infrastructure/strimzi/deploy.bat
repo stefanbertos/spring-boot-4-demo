@@ -37,10 +37,16 @@ kubectl create namespace strimzi-operator 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo [WARN] Namespace strimzi-operator already exists
 )
-kubectl create namespace spring-boot-demo 2>nul
+kubectl create namespace demo 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARN] Namespace spring-boot-demo already exists
+    echo [WARN] Namespace demo already exists
 )
+
+REM Add Helm ownership labels to demo namespace (so Helm can manage it later)
+kubectl label namespace demo app.kubernetes.io/managed-by=Helm --overwrite 2>nul
+kubectl annotate namespace demo meta.helm.sh/release-name=demo --overwrite 2>nul
+kubectl annotate namespace demo meta.helm.sh/release-namespace=demo --overwrite 2>nul
+
 echo [OK] Namespaces ready
 echo.
 
@@ -82,7 +88,7 @@ echo.
 
 REM Step 5: Deploy Kafka cluster
 echo Step 5: Deploying Kafka cluster (3 brokers with KRaft mode)...
-kubectl apply -f %~dp0kafka-cluster.yaml -n spring-boot-demo
+kubectl apply -f %~dp0kafka-cluster.yaml -n demo
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Failed to deploy Kafka cluster
     exit /b 1
@@ -92,7 +98,7 @@ echo.
 
 REM Step 6: Wait for Kafka cluster to be ready
 echo Step 6: Waiting for Kafka cluster to be ready (this may take 5-15 minutes)...
-echo    You can watch progress with: kubectl get kafka -n spring-boot-demo -w
+echo    You can watch progress with: kubectl get kafka -n demo -w
 echo.
 
 REM Wait for Kafka custom resource to be created
@@ -107,7 +113,7 @@ set interval=15
 if %elapsed% GEQ %max_wait% goto wait_timeout
 
 REM Get Kafka status
-for /f "delims=" %%i in ('kubectl get kafka demo-kafka-cluster -n spring-boot-demo -o jsonpath^="{.status.conditions[?(@.type==\"Ready\")].status}" 2^>nul') do set status=%%i
+for /f "delims=" %%i in ('kubectl get kafka kafka-cluster -n demo -o jsonpath^="{.status.conditions[?(@.type==\"Ready\")].status}" 2^>nul') do set status=%%i
 
 if "%status%"=="True" (
     echo [OK] Kafka cluster is ready!
@@ -118,7 +124,7 @@ REM Show progress every minute
 set /a show_progress=%elapsed% %% 60
 if %show_progress%==0 if %elapsed% GTR 0 (
     echo    Progress check:
-    kubectl get pods -n spring-boot-demo -l strimzi.io/cluster=demo-kafka-cluster --no-headers 2>nul
+    kubectl get pods -n demo -l strimzi.io/cluster=kafka-cluster --no-headers 2>nul
 )
 
 echo    Waiting... (%elapsed%/%max_wait% seconds) - Status: %status%
@@ -130,8 +136,8 @@ goto wait_loop
 echo [ERROR] Kafka cluster did not become ready within %max_wait% seconds
 echo.
 echo Check status with:
-echo   kubectl describe kafka demo-kafka-cluster -n spring-boot-demo
-echo   kubectl get pods -n spring-boot-demo
+echo   kubectl describe kafka kafka-cluster -n demo
+echo   kubectl get pods -n demo
 exit /b 1
 
 :wait_done
@@ -144,30 +150,30 @@ echo.
 REM Display cluster information
 echo Cluster Information:
 echo -------------------
-echo Kafka Cluster Name: demo-kafka-cluster
-echo Namespace: spring-boot-demo
+echo Kafka Cluster Name: kafka-cluster
+echo Namespace: demo
 echo Brokers: 3
 echo Mode: KRaft (no Zookeeper)
 echo.
 
 echo Bootstrap Server:
-echo   Internal: demo-kafka-cluster-kafka-bootstrap:9092
-echo   FQDN: demo-kafka-cluster-kafka-bootstrap.spring-boot-demo.svc.cluster.local:9092
+echo   Internal: kafka-cluster-kafka-bootstrap:9092
+echo   FQDN: kafka-cluster-kafka-bootstrap.demo.svc.cluster.local:9092
 echo.
 
 echo Useful Commands:
 echo -------------------
 echo   # Check Kafka cluster status
-echo   kubectl get kafka -n spring-boot-demo
+echo   kubectl get kafka -n demo
 echo.
 echo   # Check Kafka pods
-echo   kubectl get pods -n spring-boot-demo
+echo   kubectl get pods -n demo
 echo.
 echo   # Check Kafka logs
-echo   kubectl logs -n spring-boot-demo demo-kafka-cluster-kafka-0 -f
+echo   kubectl logs -n demo kafka-cluster-kafka-0 -f
 echo.
 echo   # Describe Kafka cluster
-echo   kubectl describe kafka demo-kafka-cluster -n spring-boot-demo
+echo   kubectl describe kafka kafka-cluster -n demo
 echo.
 
 echo [OK] Deployment successful!

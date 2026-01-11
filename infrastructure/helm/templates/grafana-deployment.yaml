@@ -30,17 +30,45 @@ spec:
           value: {{ .Values.grafana.adminPassword }}
         resources:
           {{- toYaml .Values.grafana.resources | nindent 10 }}
-        {{- if .Values.grafana.persistence.enabled }}
         volumeMounts:
+        {{- if .Values.grafana.persistence.enabled }}
         - name: grafana-data
           mountPath: /var/lib/grafana
         {{- end }}
-      {{- if .Values.grafana.persistence.enabled }}
+        - name: datasources
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboard-provider
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboard-node-exporter
+          mountPath: /var/lib/grafana/dashboards/node-exporter.json
+          subPath: node-exporter.json
+        - name: dashboard-spring-boot
+          mountPath: /var/lib/grafana/dashboards/spring-boot.json
+          subPath: spring-boot.json
+        - name: dashboard-kafka
+          mountPath: /var/lib/grafana/dashboards/kafka.json
+          subPath: kafka.json
       volumes:
+      {{- if .Values.grafana.persistence.enabled }}
       - name: grafana-data
         persistentVolumeClaim:
           claimName: grafana-pvc
       {{- end }}
+      - name: datasources
+        configMap:
+          name: grafana-datasources
+      - name: dashboard-provider
+        configMap:
+          name: grafana-dashboard-provider
+      - name: dashboard-node-exporter
+        configMap:
+          name: grafana-dashboard-node-exporter
+      - name: dashboard-spring-boot
+        configMap:
+          name: grafana-dashboard-spring-boot
+      - name: dashboard-kafka
+        configMap:
+          name: grafana-dashboard-kafka
 ---
 apiVersion: v1
 kind: Service

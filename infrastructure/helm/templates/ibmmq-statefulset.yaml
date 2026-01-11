@@ -143,6 +143,11 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+      {{- if not .Values.ibmmq.persistence.enabled }}
+      volumes:
+      - name: data
+        emptyDir: {}
+      {{- end }}
   {{- if .Values.ibmmq.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
@@ -156,10 +161,6 @@ spec:
       {{- if .Values.ibmmq.persistence.storageClass }}
       storageClassName: {{ .Values.ibmmq.persistence.storageClass }}
       {{- end }}
-  {{- else }}
-  volumes:
-  - name: data
-    emptyDir: {}
   {{- end }}
 {{- if .Values.ibmmq.podDisruptionBudget.enabled }}
 ---

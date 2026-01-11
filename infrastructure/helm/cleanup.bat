@@ -7,7 +7,7 @@ echo =========================================
 echo.
 
 echo [1/6] Uninstalling Helm releases...
-helm uninstall demo --namespace spring-boot-demo --ignore-not-found 2>nul
+helm uninstall demo --namespace demo --ignore-not-found 2>nul
 if errorlevel 1 (
     echo   No Helm release found or already uninstalled
 ) else (
@@ -35,7 +35,7 @@ echo   Strimzi Kafka cleanup complete
 
 echo.
 echo [5/6] Deleting namespace (if empty)...
-kubectl delete namespace spring-boot-demo --ignore-not-found=true 2>nul
+kubectl delete namespace demo --ignore-not-found=true 2>nul
 if errorlevel 1 (
     echo   Namespace already deleted
 ) else (
@@ -46,11 +46,11 @@ echo.
 echo [6/6] Verifying cleanup...
 echo.
 echo Checking Helm namespace:
-kubectl get namespace spring-boot-demo 2>nul
+kubectl get namespace demo 2>nul
 if errorlevel 1 (
-    echo   ✓ Namespace spring-boot-demo: DELETED
+    echo   ✓ Namespace demo: DELETED
 ) else (
-    echo   ⚠ WARNING: Namespace spring-boot-demo still exists
+    echo   ⚠ WARNING: Namespace demo still exists
 )
 
 echo.

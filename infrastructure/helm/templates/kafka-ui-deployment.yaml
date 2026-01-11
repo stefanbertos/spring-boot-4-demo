@@ -1,0 +1,71 @@
+{{- if .Values.kafkaUi.enabled }}
+---
+# Kafka UI Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: kafka-ui
+spec:
+  type: {{ .Values.kafkaUi.service.type }}
+  selector:
+    app: kafka-ui
+  ports:
+  - port: {{ .Values.kafkaUi.service.port }}
+    targetPort: {{ .Values.kafkaUi.service.port }}
+    {{- if eq .Values.kafkaUi.service.type "NodePort" }}
+    nodePort: {{ .Values.kafkaUi.service.nodePort }}
+    {{- end }}
+    name: http
+---
+# Kafka UI Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: kafka-ui
+spec:
+  replicas: {{ .Values.kafkaUi.replicaCount }}
+  selector:
+    matchLabels:
+      app: kafka-ui
+  template:
+    metadata:
+      labels:
+        app: kafka-ui
+    spec:
+      containers:
+      - name: kafka-ui
+        image: {{ .Values.kafkaUi.image.repository }}:{{ .Values.kafkaUi.image.tag }}
+        imagePullPolicy: {{ .Values.kafkaUi.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.kafkaUi.service.port }}
+          name: http
+        env:
+        - name: KAFKA_CLUSTERS_0_NAME
+          value: {{ .Values.kafkaUi.kafka.clusterName }}
+        - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+          value: {{ .Values.kafkaUi.kafka.bootstrapServers }}
+        - name: DYNAMIC_CONFIG_ENABLED
+          value: "true"
+        resources:
+          {{- toYaml .Values.kafkaUi.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: {{ .Values.kafkaUi.service.port }}
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: {{ .Values.kafkaUi.service.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+{{- end }}

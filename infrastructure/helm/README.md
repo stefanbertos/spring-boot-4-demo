@@ -43,7 +43,7 @@ deploy.bat deploy
 This will:
 1. Check prerequisites (kubectl, helm, docker)
 2. Build the Docker image for the demo application
-3. Deploy all components to Rancher Desktop (namespace: `spring-boot-demo`)
+3. Deploy all components to Rancher Desktop (namespace: `demo`)
 4. Wait for all pods to be ready (may take 2-3 minutes)
 5. Display access URLs
 
@@ -138,13 +138,13 @@ cd ..\..\infrastructure\helm
 ### 2. Install Helm Chart
 
 ```batch
-helm install demo-app . --namespace spring-boot-demo --create-namespace --wait
+helm install demo-app . --namespace demo --create-namespace --wait
 ```
 
 ### 3. Watch Deployment
 
 ```batch
-kubectl get pods -n spring-boot-demo --watch
+kubectl get pods -n demo --watch
 ```
 
 Expected pods:
@@ -218,14 +218,14 @@ demoApp:
 Check pod status and events:
 
 ```batch
-kubectl describe pod <pod-name> -n spring-boot-demo
-kubectl logs <pod-name> -n spring-boot-demo
+kubectl describe pod <pod-name> -n demo
+kubectl logs <pod-name> -n demo
 ```
 
 ### Check Events
 
 ```batch
-kubectl get events -n spring-boot-demo --sort-by='.lastTimestamp'
+kubectl get events -n demo --sort-by='.lastTimestamp'
 ```
 
 ### Delete and Redeploy
@@ -239,29 +239,29 @@ deploy.bat deploy
 
 1. Check Kafka brokers are running:
    ```batch
-   kubectl get pods -n spring-boot-demo -l app=kafka
+   kubectl get pods -n demo -l app=kafka
    ```
 
 2. Check Kafka logs:
    ```batch
-   kubectl logs kafka-0 -n spring-boot-demo
-   kubectl logs kafka-1 -n spring-boot-demo
-   kubectl logs kafka-2 -n spring-boot-demo
+   kubectl logs kafka-0 -n demo
+   kubectl logs kafka-1 -n demo
+   kubectl logs kafka-2 -n demo
    ```
 
 3. Verify Zookeeper ensemble:
    ```batch
-   kubectl get pods -n spring-boot-demo -l app=zookeeper
+   kubectl get pods -n demo -l app=zookeeper
    ```
 
 4. Check Zookeeper logs:
    ```batch
-   kubectl logs zookeeper-0 -n spring-boot-demo
+   kubectl logs zookeeper-0 -n demo
    ```
 
 5. Test Kafka connectivity from a pod:
    ```batch
-   kubectl exec -it kafka-0 -n spring-boot-demo -- /bin/bash
+   kubectl exec -it kafka-0 -n demo -- /bin/bash
    kafka-broker-api-versions.sh --bootstrap-server localhost:9092
    ```
 
@@ -269,12 +269,12 @@ deploy.bat deploy
 
 1. Check MQ pod:
    ```batch
-   kubectl get pods -n spring-boot-demo -l app=ibmmq
+   kubectl get pods -n demo -l app=ibmmq
    ```
 
 2. Check MQ logs:
    ```batch
-   kubectl logs ibmmq-0 -n spring-boot-demo
+   kubectl logs ibmmq-0 -n demo
    ```
 
 3. Access MQ Console:
@@ -287,18 +287,18 @@ deploy.bat deploy
 
 1. Check Zookeeper status:
    ```batch
-   kubectl exec -it zookeeper-0 -n spring-boot-demo -- zkServer.sh status
+   kubectl exec -it zookeeper-0 -n demo -- zkServer.sh status
    ```
 
 2. Verify Zookeeper ensemble:
    ```batch
-   kubectl exec -it zookeeper-0 -n spring-boot-demo -- zkCli.sh -server localhost:2181 ls /
+   kubectl exec -it zookeeper-0 -n demo -- zkCli.sh -server localhost:2181 ls /
    ```
 
 ### View All Resources
 
 ```batch
-kubectl get all -n spring-boot-demo
+kubectl get all -n demo
 ```
 
 ## Monitoring
@@ -345,7 +345,7 @@ Check which targets Prometheus is scraping:
 ### Scale Application
 
 ```batch
-kubectl scale deployment demo-app --replicas=3 -n spring-boot-demo
+kubectl scale deployment demo-app --replicas=3 -n demo
 ```
 
 Or update `values.yaml`:
@@ -358,7 +358,7 @@ demoApp:
 Then upgrade:
 
 ```batch
-helm upgrade demo-app . --namespace spring-boot-demo
+helm upgrade demo-app . --namespace demo
 ```
 
 ### Scale Kafka (requires recreation)
@@ -373,7 +373,7 @@ kafka:
 Then upgrade:
 
 ```batch
-helm upgrade demo-app . --namespace spring-boot-demo --wait
+helm upgrade demo-app . --namespace demo --wait
 ```
 
 **Note**: Scaling StatefulSets is supported, but scaling down may require manual intervention to ensure data is properly replicated.
@@ -389,8 +389,8 @@ deploy.bat undeploy
 ### Manual Uninstall
 
 ```batch
-helm uninstall demo-app --namespace spring-boot-demo
-kubectl delete namespace spring-boot-demo
+helm uninstall demo-app --namespace demo
+kubectl delete namespace demo
 ```
 
 ## Advanced Usage
@@ -398,19 +398,19 @@ kubectl delete namespace spring-boot-demo
 ### Update Specific Component
 
 ```batch
-helm upgrade demo-app . --namespace spring-boot-demo --set demoApp.replicaCount=2
+helm upgrade demo-app . --namespace demo --set demoApp.replicaCount=2
 ```
 
 ### Dry Run
 
 ```batch
-helm install demo-app . --namespace spring-boot-demo --dry-run --debug
+helm install demo-app . --namespace demo --dry-run --debug
 ```
 
 ### Template Rendering
 
 ```batch
-helm template demo-app . --namespace spring-boot-demo
+helm template demo-app . --namespace demo
 ```
 
 ### Helm Chart Verification
@@ -459,6 +459,6 @@ infrastructure/helm/
 
 For issues or questions:
 1. Check the troubleshooting section above
-2. Review Kubernetes events: `kubectl get events -n spring-boot-demo`
-3. Check pod logs: `kubectl logs <pod-name> -n spring-boot-demo`
+2. Review Kubernetes events: `kubectl get events -n demo`
+3. Check pod logs: `kubectl logs <pod-name> -n demo`
 4. Verify Rancher Desktop is running and kubectl context is correct

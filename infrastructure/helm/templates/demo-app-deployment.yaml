@@ -16,7 +16,7 @@ data:
         listener:
           auto-startup: true
       kafka:
-        bootstrap-servers: demo-kafka-cluster-kafka-bootstrap:9092
+        bootstrap-servers: kafka-cluster-kafka-bootstrap:9092
         producer:
           key-serializer: org.apache.kafka.common.serialization.StringSerializer
           value-serializer: org.apache.kafka.common.serialization.StringSerializer

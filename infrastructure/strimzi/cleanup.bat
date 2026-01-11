@@ -11,7 +11,7 @@ echo.
 
 REM Step 1: Delete Kafka cluster
 echo [1/6] Deleting Kafka cluster...
-kubectl delete kafka demo-kafka-cluster -n spring-boot-demo --ignore-not-found=true 2>nul
+kubectl delete kafka kafka-cluster -n demo --ignore-not-found=true 2>nul
 if %ERRORLEVEL% EQU 0 (
     echo   [OK] Kafka cluster deleted
 ) else (
@@ -25,7 +25,7 @@ echo   [OK] Done
 
 REM Step 3: Delete PVCs
 echo [3/6] Deleting Kafka PVCs...
-kubectl delete pvc -n spring-boot-demo -l strimzi.io/name=demo-kafka-cluster-kafka --ignore-not-found=true 2>nul
+kubectl delete pvc -n demo -l strimzi.io/name=kafka-cluster-kafka --ignore-not-found=true 2>nul
 if %ERRORLEVEL% EQU 0 (
     echo   [OK] Kafka PVCs deleted
 ) else (
@@ -34,9 +34,9 @@ if %ERRORLEVEL% EQU 0 (
 
 REM Step 4: Delete Entity Operator
 echo [4/6] Cleaning up Entity Operator...
-kubectl delete deployment -n spring-boot-demo -l strimzi.io/name=demo-kafka-cluster-entity-operator --ignore-not-found=true 2>nul
-kubectl delete configmap -n spring-boot-demo -l strimzi.io/name=demo-kafka-cluster-entity-operator --ignore-not-found=true 2>nul
-kubectl delete secret -n spring-boot-demo -l strimzi.io/name=demo-kafka-cluster-entity-operator --ignore-not-found=true 2>nul
+kubectl delete deployment -n demo -l strimzi.io/name=kafka-cluster-entity-operator --ignore-not-found=true 2>nul
+kubectl delete configmap -n demo -l strimzi.io/name=kafka-cluster-entity-operator --ignore-not-found=true 2>nul
+kubectl delete secret -n demo -l strimzi.io/name=kafka-cluster-entity-operator --ignore-not-found=true 2>nul
 echo   [OK] Entity Operator cleaned up
 
 REM Step 5: Delete Strimzi Operator
@@ -59,13 +59,13 @@ echo Cleanup Complete!
 echo =========================================
 echo.
 echo Removed:
-echo   - Kafka cluster (demo-kafka-cluster)
+echo   - Kafka cluster (kafka-cluster)
 echo   - All Kafka PVCs and data
 echo   - Entity Operator
 echo   - Strimzi Operator
 echo   - Strimzi operator namespace
 echo.
-echo NOTE: spring-boot-demo namespace preserved for other components
+echo NOTE: demo namespace preserved for other components
 echo.
 echo To redeploy, run:
 echo   %~dp0deploy.bat

@@ -37,7 +37,7 @@ kubectl create namespace strimzi-operator
 helm install strimzi-cluster-operator strimzi/strimzi-kafka-operator \
   --namespace strimzi-operator \
   --set replicas=3 \
-  --set watchNamespaces="{spring-boot-demo}" \
+  --set watchNamespaces="{demo}" \
   --set leaderElection.enabled=true \
   --set podDisruptionBudget.enabled=true
 
@@ -49,33 +49,33 @@ kubectl get pods -n strimzi-operator
 
 ```bash
 # Create namespace for Kafka
-kubectl create namespace spring-boot-demo
+kubectl create namespace demo
 
 # Deploy Kafka cluster
-kubectl apply -f infrastructure/strimzi/kafka-cluster.yaml -n spring-boot-demo
+kubectl apply -f infrastructure/strimzi/kafka-cluster.yaml -n demo
 
 # Watch deployment (takes 2-5 minutes)
-kubectl get kafka -n spring-boot-demo -w
+kubectl get kafka -n demo -w
 ```
 
 ### 3. Verify Deployment
 
 ```bash
 # Check Kafka cluster status
-kubectl get kafka -n spring-boot-demo
+kubectl get kafka -n demo
 
 # Should show:
 # NAME                DESIRED KAFKA REPLICAS   DESIRED ZK REPLICAS   READY   WARNINGS
-# demo-kafka-cluster  3                                              True
+# kafka-cluster  3                                              True
 
 # Check pods
-kubectl get pods -n spring-boot-demo
+kubectl get pods -n demo
 
 # Should show:
-# demo-kafka-cluster-kafka-0        1/1     Running
-# demo-kafka-cluster-kafka-1        1/1     Running
-# demo-kafka-cluster-kafka-2        1/1     Running
-# demo-kafka-cluster-entity-operator-...  Running
+# kafka-cluster-kafka-0        1/1     Running
+# kafka-cluster-kafka-1        1/1     Running
+# kafka-cluster-kafka-2        1/1     Running
+# kafka-cluster-entity-operator-...  Running
 ```
 
 ### 4. Test Kafka
@@ -85,8 +85,8 @@ kubectl get pods -n spring-boot-demo
 kubectl run kafka-producer -ti --rm=true \
   --image=quay.io/strimzi/kafka:latest-kafka-3.9.0 \
   --restart=Never \
-  -n spring-boot-demo -- bin/kafka-topics.sh \
-  --bootstrap-server demo-kafka-cluster-kafka-bootstrap:9092 \
+  -n demo -- bin/kafka-topics.sh \
+  --bootstrap-server kafka-cluster-kafka-bootstrap:9092 \
   --create --topic test-topic \
   --replication-factor 3 \
   --partitions 3
@@ -95,16 +95,16 @@ kubectl run kafka-producer -ti --rm=true \
 kubectl run kafka-producer -ti --rm=true \
   --image=quay.io/strimzi/kafka:latest-kafka-3.9.0 \
   --restart=Never \
-  -n spring-boot-demo -- bin/kafka-console-producer.sh \
-  --bootstrap-server demo-kafka-cluster-kafka-bootstrap:9092 \
+  -n demo -- bin/kafka-console-producer.sh \
+  --bootstrap-server kafka-cluster-kafka-bootstrap:9092 \
   --topic test-topic
 
 # Consume message
 kubectl run kafka-consumer -ti --rm=true \
   --image=quay.io/strimzi/kafka:latest-kafka-3.9.0 \
   --restart=Never \
-  -n spring-boot-demo -- bin/kafka-console-consumer.sh \
-  --bootstrap-server demo-kafka-cluster-kafka-bootstrap:9092 \
+  -n demo -- bin/kafka-console-consumer.sh \
+  --bootstrap-server kafka-cluster-kafka-bootstrap:9092 \
   --topic test-topic \
   --from-beginning
 ```
@@ -116,7 +116,7 @@ Update your application configuration:
 ```yaml
 spring:
   kafka:
-    bootstrap-servers: demo-kafka-cluster-kafka-bootstrap.spring-boot-demo.svc.cluster.local:9092
+    bootstrap-servers: kafka-cluster-kafka-bootstrap.demo.svc.cluster.local:9092
 ```
 
 Or if using the same namespace:
@@ -124,7 +124,7 @@ Or if using the same namespace:
 ```yaml
 spring:
   kafka:
-    bootstrap-servers: demo-kafka-cluster-kafka-bootstrap:9092
+    bootstrap-servers: kafka-cluster-kafka-bootstrap:9092
 ```
 
 ## Advantages Over Custom Charts
@@ -159,17 +159,17 @@ spring:
 
 ```bash
 # Scale up to 5 brokers
-kubectl patch kafka demo-kafka-cluster -n spring-boot-demo --type merge -p '{"spec":{"kafka":{"replicas":5}}}'
+kubectl patch kafka kafka-cluster -n demo --type merge -p '{"spec":{"kafka":{"replicas":5}}}'
 
 # Scale down to 3 brokers
-kubectl patch kafka demo-kafka-cluster -n spring-boot-demo --type merge -p '{"spec":{"kafka":{"replicas":3}}}'
+kubectl patch kafka kafka-cluster -n demo --type merge -p '{"spec":{"kafka":{"replicas":3}}}'
 ```
 
 ## Upgrading Kafka
 
 ```bash
 # Edit the Kafka custom resource
-kubectl edit kafka demo-kafka-cluster -n spring-boot-demo
+kubectl edit kafka kafka-cluster -n demo
 
 # Change version (operator handles rolling upgrade automatically)
 spec:
@@ -186,25 +186,25 @@ kubectl logs -n strimzi-operator -l app.kubernetes.io/name=strimzi-cluster-opera
 
 ### Check Kafka Status
 ```bash
-kubectl describe kafka demo-kafka-cluster -n spring-boot-demo
+kubectl describe kafka kafka-cluster -n demo
 ```
 
 ### Check Broker Logs
 ```bash
-kubectl logs -n spring-boot-demo demo-kafka-cluster-kafka-0 -f
+kubectl logs -n demo kafka-cluster-kafka-0 -f
 ```
 
 ## Cleanup
 
 ```bash
 # Delete Kafka cluster
-kubectl delete kafka demo-kafka-cluster -n spring-boot-demo
+kubectl delete kafka kafka-cluster -n demo
 
 # Delete operator
 helm uninstall strimzi-cluster-operator -n strimzi-operator
 
 # Delete namespaces
-kubectl delete namespace spring-boot-demo strimzi-operator
+kubectl delete namespace demo strimzi-operator
 ```
 
 ## References

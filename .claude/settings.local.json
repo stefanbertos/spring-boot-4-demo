@@ -24,7 +24,15 @@
       "Bash(kubectl get:*)",
       "Bash(kubectl describe:*)",
       "Bash(kubectl exec:*)",
-      "Bash(helm template:*)"
+      "Bash(helm template:*)",
+      "WebFetch(domain:strimzi.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(kubectl label:*)",
+      "Bash(kubectl annotate:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(findstr:*)",
+      "Bash([ -f \"C:\\\\Users\\\\stefa\\\\IdeaProjects\\\\demo\\\\infrastructure\\\\helm\\\\README.md\" ])",
+      "Bash(find:*)"
     ]
   }
 }
