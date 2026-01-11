@@ -32,7 +32,12 @@
       "Bash(kubectl delete:*)",
       "Bash(findstr:*)",
       "Bash([ -f \"C:\\\\Users\\\\stefa\\\\IdeaProjects\\\\demo\\\\infrastructure\\\\helm\\\\README.md\" ])",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(docker images:*)",
+      "Bash(docker save:*)",
+      "Bash(nerdctl:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(curl:*)"
     ]
   }
 }

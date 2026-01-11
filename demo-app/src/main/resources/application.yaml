@@ -1,3 +1,7 @@
+# Local Development Configuration
+# For local development, run: infrastructure/port-forward.bat
+# This forwards Kafka (9092) and IBM MQ (1414) to localhost
+
 spring:
   application:
     name: demo

@@ -146,7 +146,7 @@ demoApp:
   image:
     repository: demo-app
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Never  # Use local image only (for Rancher Desktop/K3s)
   service:
     type: NodePort
     port: 8080

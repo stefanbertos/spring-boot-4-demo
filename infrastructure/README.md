@@ -168,6 +168,17 @@ This will:
 - **IBM MQ Console**: https://localhost:31443/ibmmq/console (admin/passw0rd)
 - **Kafka**: kafka-cluster-kafka-bootstrap:9092 (internal)
 
+## Local Development
+
+To run the Spring Boot app locally (outside Kubernetes), you need to port-forward services:
+
+```cmd
+cd infrastructure
+port-forward.bat
+```
+
+See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for detailed instructions.
+
 ## Status and Troubleshooting
 
 ### Check Deployment Status

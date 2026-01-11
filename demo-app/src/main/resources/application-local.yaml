@@ -1,0 +1,7 @@
+spring:
+  jms:
+    listener:
+      auto-startup: false  # Disable MQ listener for local development
+
+# Kafka still uses localhost:9092 (port-forward required)
+# To run locally: kubectl port-forward -n demo svc/kafka-cluster-kafka-bootstrap 9092:9092

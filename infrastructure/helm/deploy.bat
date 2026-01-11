@@ -123,6 +123,17 @@ if errorlevel 1 (
     exit /b 1
 )
 echo   Docker image built successfully
+
+echo   Importing image to Kubernetes (Rancher Desktop)...
+docker save demo-app:latest | nerdctl -n k8s.io load >nul 2>&1
+if errorlevel 1 (
+    echo WARNING: Failed to import image to K8s, trying alternative method...
+    docker save demo-app:latest -o demo-app.tar
+    nerdctl -n k8s.io load -i demo-app.tar
+    del demo-app.tar
+)
+echo   Image imported to Kubernetes
+
 cd ..\infrastructure\helm
 echo.
 goto create_namespace
@@ -136,6 +147,13 @@ if errorlevel 1 (
     pause >nul
 ) else (
     echo   Using existing demo-app:latest image
+    echo   Importing image to Kubernetes (Rancher Desktop)...
+    docker save demo-app:latest | nerdctl -n k8s.io load >nul 2>&1
+    if errorlevel 1 (
+        echo WARNING: Failed to import image to K8s, will try during deployment
+    ) else (
+        echo   Image imported to Kubernetes
+    )
 )
 echo.
 
