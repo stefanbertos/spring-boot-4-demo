@@ -1,17 +1,17 @@
 {{- if .Values.kafkaUi.enabled }}
 ---
-# Kafka UI Service
+# Kafka Drop5 Service (Kafdrop)
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka-ui
+  name: kafka-drop5
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: kafka-ui
+    app: kafka-drop5
 spec:
   type: {{ .Values.kafkaUi.service.type }}
   selector:
-    app: kafka-ui
+    app: kafka-drop5
   ports:
   - port: {{ .Values.kafkaUi.service.port }}
     targetPort: {{ .Values.kafkaUi.service.port }}
@@ -20,50 +20,50 @@ spec:
     {{- end }}
     name: http
 ---
-# Kafka UI Deployment
+# Kafka Drop5 Deployment (Kafdrop)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kafka-ui
+  name: kafka-drop5
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: kafka-ui
+    app: kafka-drop5
 spec:
   replicas: {{ .Values.kafkaUi.replicaCount }}
   selector:
     matchLabels:
-      app: kafka-ui
+      app: kafka-drop5
   template:
     metadata:
       labels:
-        app: kafka-ui
+        app: kafka-drop5
     spec:
       containers:
-      - name: kafka-ui
+      - name: kafka-drop5
         image: {{ .Values.kafkaUi.image.repository }}:{{ .Values.kafkaUi.image.tag }}
         imagePullPolicy: {{ .Values.kafkaUi.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.kafkaUi.service.port }}
           name: http
         env:
-        - name: KAFKA_CLUSTERS_0_NAME
-          value: {{ .Values.kafkaUi.kafka.clusterName }}
-        - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
-          value: {{ .Values.kafkaUi.kafka.bootstrapServers }}
-        - name: DYNAMIC_CONFIG_ENABLED
-          value: "true"
+        - name: KAFKA_BROKERCONNECT
+          value: {{ .Values.kafkaUi.kafka.brokerConnect }}
+        - name: JVM_OPTS
+          value: {{ .Values.kafkaUi.jvmOpts }}
+        - name: SERVER_SERVLET_CONTEXTPATH
+          value: {{ .Values.kafkaUi.serverServletContextPath }}
         resources:
           {{- toYaml .Values.kafkaUi.resources | nindent 10 }}
         livenessProbe:
           httpGet:
-            path: /actuator/health
+            path: /
             port: {{ .Values.kafkaUi.service.port }}
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
-            path: /actuator/health
+            path: /
             port: {{ .Values.kafkaUi.service.port }}
           initialDelaySeconds: 30
           periodSeconds: 10

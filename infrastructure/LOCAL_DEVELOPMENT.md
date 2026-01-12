@@ -36,7 +36,7 @@ When running the Spring Boot application on your local machine (outside Kubernet
 **Services already accessible (no port-forward needed):**
 - Prometheus: http://localhost:31090
 - Grafana: http://localhost:31300 (admin/admin)
-- Kafka UI: http://localhost:31800
+- Kafka Drop5: http://localhost:31800
 - IBM MQ Console: https://localhost:31443 (admin/passw0rd)
 
 ### Stop Port Forwarding

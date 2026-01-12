@@ -23,7 +23,7 @@ echo.
 echo Already accessible via NodePort:
 echo   Prometheus:     http://localhost:31090
 echo   Grafana:        http://localhost:31300
-echo   Kafka UI:       http://localhost:31800
+echo   Kafka Drop5:    http://localhost:31800
 echo   IBM MQ Console: https://localhost:31443
 echo.
 echo Press Ctrl+C to stop all port forwards

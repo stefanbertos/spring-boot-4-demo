@@ -86,6 +86,7 @@ After deployment, access the services via NodePort:
 |---------|-----|-------------|
 | Demo App | http://localhost:31080 | - |
 | Actuator | http://localhost:31080/actuator | - |
+| Kafka Drop5 | http://localhost:31800 | - |
 | Prometheus | http://localhost:31090 | - |
 | Grafana | http://localhost:31300 | admin/admin |
 | IBM MQ Console | https://localhost:31443/ibmmq/console | admin/passw0rd |

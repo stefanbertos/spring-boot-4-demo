@@ -38,7 +38,12 @@
       "Bash(nerdctl:*)",
       "Bash(helm upgrade:*)",
       "Bash(curl:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(docker:*)",
+      "Bash(\"C:\\\\Program Files\\\\Rancher Desktop\\\\resources\\\\resources\\\\win32\\\\bin\\\\docker.exe\" version)",
+      "Bash(tasklist:*)",
+      "Bash(set PATH=\"C:\\\\Program Files\\\\Rancher Desktop\\\\resources\\\\resources\\\\win32\\\\bin\")",
+      "Bash(%PATH%)"
     ]
   }
 }

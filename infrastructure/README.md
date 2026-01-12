@@ -44,7 +44,7 @@ deploy.bat deploy
 
 Includes:
 - Strimzi Kafka (3 brokers, KRaft mode)
-- Kafka UI (web interface)
+- Kafka Drop5 (web interface)
 - Demo Application
 - IBM MQ
 - Prometheus + Grafana
@@ -59,7 +59,7 @@ deploy.bat deploy --infra-only
 
 Includes:
 - Strimzi Kafka (3 brokers)
-- Kafka UI
+- Kafka Drop5
 - IBM MQ
 - Prometheus + Grafana
 
@@ -131,7 +131,7 @@ This will:
 - Bootstrap: kafka-cluster-kafka-bootstrap:9092
 - No external access by default (internal only)
 
-### Kafka UI
+### Kafka Drop5
 
 - Web-based Kafka management interface
 - URL: http://localhost:31800
@@ -162,7 +162,7 @@ This will:
 
 - **Demo App**: http://localhost:31080
 - **Actuator**: http://localhost:31080/actuator
-- **Kafka UI**: http://localhost:31800
+- **Kafka Drop5**: http://localhost:31800
 - **Prometheus**: http://localhost:31090
 - **Grafana**: http://localhost:31300 (admin/admin)
 - **IBM MQ Console**: https://localhost:31443/ibmmq/console (admin/passw0rd)
@@ -280,7 +280,7 @@ kubectl run kafka-producer -ti --rm=true \
 |-----------|------|--------|---------|
 | **Kafka (Strimzi)** | 3 | 3-6Gi | 60Gi |
 | **Entity Operator** | 1 | ~256Mi | - |
-| **Kafka UI** | 1 | 256Mi-512Mi | - |
+| **Kafka Drop5** | 1 | 256Mi-512Mi | - |
 | **IBM MQ** | 1 | 512Mi-1Gi | 5Gi (optional) |
 | **Demo App** | 1 | 512Mi-1Gi | - |
 | **Prometheus** | 1 | 256Mi-512Mi | - |
@@ -316,7 +316,7 @@ kubectl run kafka-producer -ti --rm=true \
 
 ✅ **One command** deploys everything
 ✅ **Kafka is deployed first** (Strimzi, production-ready)
-✅ **Kafka UI** for easy management and monitoring
+✅ **Kafka Drop5** for easy management and monitoring
 ✅ **Application depends on Kafka** (deployed after)
 ✅ **All infrastructure** included (MQ, Prometheus, Grafana)
 ✅ **Single cleanup** script removes everything

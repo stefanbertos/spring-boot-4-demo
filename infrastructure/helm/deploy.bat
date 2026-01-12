@@ -57,8 +57,16 @@ if %INFRA_ONLY%==1 (
 )
 echo.
 
+REM Switch to rancher-desktop context
+echo [1/6] Switching to rancher-desktop context...
+kubectl config use-context rancher-desktop >nul 2>&1
+if errorlevel 1 (
+    echo WARNING: Could not switch to rancher-desktop context. Continuing with current context.
+)
+echo.
+
 REM Check prerequisites
-echo [1/6] Checking prerequisites...
+echo [2/6] Checking prerequisites...
 kubectl version --client >nul 2>&1
 if errorlevel 1 (
     echo ERROR: kubectl not found. Please install kubectl.
@@ -73,16 +81,31 @@ if errorlevel 1 (
 )
 echo   helm found
 
-docker version >nul 2>&1
+REM Add Rancher Desktop to PATH if not already there
+set "RANCHER_BIN=C:\Program Files\Rancher Desktop\resources\resources\win32\bin"
+if exist "%RANCHER_BIN%\docker.exe" (
+    set "PATH=%RANCHER_BIN%;%PATH%"
+)
+
+REM Check if docker daemon is running (not just if binary exists)
+echo   Checking Docker daemon...
+docker info >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: docker not found. Please install Docker.
+    echo ERROR: Docker daemon is not running. Please ensure Rancher Desktop is fully started.
+    echo.
+    echo Troubleshooting steps:
+    echo   1. Check Rancher Desktop in system tray - wait for it to stop spinning
+    echo   2. In Rancher Desktop preferences, ensure Container Engine is set to 'dockerd (moby)'
+    echo   3. Try: docker version
+    echo   4. If needed, restart Rancher Desktop
+    echo.
     exit /b 1
 )
-echo   Docker found
+echo   Docker daemon is running
 echo.
 
 REM Deploy Strimzi Kafka (first!)
-echo [2/6] Deploying Strimzi Kafka cluster...
+echo [3/6] Deploying Strimzi Kafka cluster...
 echo   Calling strimzi deployment script...
 cd ..\strimzi
 call deploy.bat
@@ -98,7 +121,7 @@ echo.
 REM Build Docker image
 if %SKIP_BUILD%==1 goto skip_build
 
-echo [3/6] Building Docker image...
+echo [4/6] Building Docker image...
 cd ..\..
 if not exist "mvnw.cmd" (
     echo ERROR: Maven wrapper not found at project root
@@ -139,7 +162,7 @@ echo.
 goto create_namespace
 
 :skip_build
-echo [3/6] Skipping Docker image build...
+echo [4/6] Skipping Docker image build...
 docker images demo-app:latest --format "{{.Repository}}:{{.Tag}}" 2>nul | findstr "demo-app:latest" >nul 2>&1
 if errorlevel 1 (
     echo WARNING: demo-app:latest image not found
@@ -159,12 +182,12 @@ echo.
 
 :create_namespace
 REM Helm will create namespace if needed
-echo [4/6] Preparing deployment...
+echo [5/6] Preparing deployment...
 echo   Namespace: %NAMESPACE%
 echo.
 
 REM Install/Upgrade Helm chart
-echo [5/6] Deploying Helm chart...
+echo [6/6] Deploying Helm chart...
 if %INFRA_ONLY%==1 (
     echo   Deploying infrastructure components only ^(demo app disabled^)
 )
@@ -181,7 +204,7 @@ echo   Helm chart deployed successfully
 echo.
 
 REM Wait for pods
-echo [6/6] Waiting for pods to be ready...
+echo [7/7] Waiting for pods to be ready...
 echo   This may take 2-3 minutes...
 kubectl wait --for=condition=ready pod --all -n %NAMESPACE% --timeout=300s
 if errorlevel 1 (
