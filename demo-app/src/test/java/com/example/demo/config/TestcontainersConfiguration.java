@@ -6,7 +6,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+
+import java.time.Duration;
 
 /**
  * Test configuration for Testcontainers.
@@ -26,6 +29,8 @@ public class TestcontainersConfiguration {
             .withEnv("MQ_APP_PASSWORD", "passw0rd")
             .withEnv("MQ_ADMIN_PASSWORD", "passw0rd")
             .withExposedPorts(1414, 9443)
+            .waitingFor(Wait.forListeningPorts(1414, 9443)
+                    .withStartupTimeout(Duration.ofMinutes(3)))
             .withReuse(true);
 
     static {

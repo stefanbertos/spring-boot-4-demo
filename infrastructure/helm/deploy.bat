@@ -82,9 +82,9 @@ if errorlevel 1 (
 echo   helm found
 
 REM Add Rancher Desktop to PATH if not already there
-set "RANCHER_BIN=C:\Program Files\Rancher Desktop\resources\resources\win32\bin"
+set RANCHER_BIN=C:\Program Files\Rancher Desktop\resources\resources\win32\bin
 if exist "%RANCHER_BIN%\docker.exe" (
-    set "PATH=%RANCHER_BIN%;%PATH%"
+    set PATH=%RANCHER_BIN%;%PATH%
 )
 
 REM Check if docker daemon is running (not just if binary exists)

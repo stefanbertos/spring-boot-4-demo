@@ -47,6 +47,15 @@ data:
             target_label: __address__
             replacement: '${1}:9100'
 
+      # Scrape Kube State Metrics
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics:{{ .Values.kubeStateMetrics.service.port }}']
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: instance
+            replacement: 'kube-state-metrics'
+
       # Auto-discover pods with prometheus.io/scrape annotation
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:

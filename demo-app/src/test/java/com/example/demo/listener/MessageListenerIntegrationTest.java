@@ -48,7 +48,7 @@ class MessageListenerIntegrationTest {
     private BlockingQueue<ConsumerRecord<String, String>> records;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         records = new LinkedBlockingQueue<>();
 
         Map<String, Object> consumerProps = new HashMap<>();
@@ -57,15 +57,30 @@ class MessageListenerIntegrationTest {
         consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        consumerProps.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, true);
 
         DefaultKafkaConsumerFactory<String, String> consumerFactory = new DefaultKafkaConsumerFactory<>(consumerProps);
         ContainerProperties containerProperties = new ContainerProperties(kafkaTopic);
+        containerProperties.setMissingTopicsFatal(false);
 
         container = new KafkaMessageListenerContainer<>(consumerFactory, containerProperties);
         container.setupMessageListener((MessageListener<String, String>) records::add);
         container.start();
 
-        ContainerTestUtils.waitForAssignment(container, 1);
+        // Wait for the topic to be created and partition assignment
+        // Give Kafka time to create the topic and assign partitions
+        int retries = 30;
+        for (int i = 0; i < retries; i++) {
+            try {
+                Thread.sleep(1000);
+                ContainerTestUtils.waitForAssignment(container, 1);
+                break;
+            } catch (IllegalStateException e) {
+                if (i == retries - 1) {
+                    throw e;
+                }
+            }
+        }
     }
 
     @AfterEach

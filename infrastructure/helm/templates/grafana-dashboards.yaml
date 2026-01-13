@@ -407,4 +407,349 @@ data:
       "uid": "kafka-cluster",
       "version": 0
     }
+---
+# Kubernetes Cluster Dashboard (using kube-state-metrics)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-kubernetes
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+    dashboard: kubernetes
+data:
+  kubernetes.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "id": 1,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_node_info)", "refId": "A"}],
+          "title": "Total Nodes",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "id": 2,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_pod_info)", "refId": "A"}],
+          "title": "Total Pods",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "id": 3,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_deployment_status_replicas_available)", "refId": "A"}],
+          "title": "Available Replicas",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "id": 4,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Failed\"})", "refId": "A"}],
+          "title": "Failed Pods",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "id": 5,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Pending\"})", "refId": "A"}],
+          "title": "Pending Pods",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+          "id": 6,
+          "options": {"colorMode": "value", "graphMode": "none", "textMode": "auto"},
+          "targets": [{"expr": "sum(kube_pod_container_status_restarts_total)", "refId": "A"}],
+          "title": "Container Restarts",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "id": 7,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_status_phase{phase=\"Running\"}) by (namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }} - Running",
+              "refId": "A"
+            }
+          ],
+          "title": "Running Pods by Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "cores"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "id": 8,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }} - CPU Requests",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Requests by Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "id": 9,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }} - Memory Requests",
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Requests by Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "id": 10,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(kube_pod_container_status_restarts_total[5m])) by (namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }} - Restart Rate",
+              "refId": "A"
+            }
+          ],
+          "title": "Container Restart Rate by Namespace",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "id": 11,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_deployment_status_replicas) by (deployment, namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}deployment{{ "}}" }} - Desired",
+              "refId": "A"
+            },
+            {
+              "expr": "sum(kube_deployment_status_replicas_available) by (deployment, namespace)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}deployment{{ "}}" }} - Available",
+              "refId": "B"
+            }
+          ],
+          "title": "Deployment Replicas Status",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "id": 12,
+          "options": {
+            "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_persistentvolumeclaim_resource_requests_storage_bytes) by (namespace, persistentvolumeclaim)",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}persistentvolumeclaim{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Persistent Volume Claims",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {"align": "auto", "displayMode": "auto"},
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]}
+            }
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+          "id": 13,
+          "options": {
+            "showHeader": true,
+            "sortBy": []
+          },
+          "targets": [
+            {
+              "expr": "kube_pod_info",
+              "format": "table",
+              "instant": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Pod Information",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "job": true,
+                  "instance": true,
+                  "pod_ip": true,
+                  "uid": true
+                },
+                "indexByName": {},
+                "renameByName": {
+                  "namespace": "Namespace",
+                  "pod": "Pod Name",
+                  "node": "Node",
+                  "created_by_kind": "Created By",
+                  "created_by_name": "Owner"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["kubernetes", "kube-state-metrics", "cluster"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Kubernetes Cluster Overview",
+      "uid": "kubernetes-cluster",
+      "version": 0
+    }
 {{- end }}
