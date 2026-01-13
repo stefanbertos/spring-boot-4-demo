@@ -44,12 +44,14 @@ public class TestcontainersConfiguration {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Configure Kafka
+        // Configure Kafka - override the default localhost:9092
+        System.out.println("Configuring Kafka bootstrap-servers: " + kafka.getBootstrapServers());
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
 
-        // Configure IBM MQ
-        registry.add("ibm.mq.conn-name", () ->
-            ibmMq.getHost() + "(" + ibmMq.getMappedPort(1414) + ")");
+        // Configure IBM MQ - override the default localhost(1414)
+        String mqConnName = ibmMq.getHost() + "(" + ibmMq.getMappedPort(1414) + ")";
+        System.out.println("Configuring IBM MQ conn-name: " + mqConnName);
+        registry.add("ibm.mq.conn-name", () -> mqConnName);
     }
 
     /**

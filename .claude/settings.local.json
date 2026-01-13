@@ -44,7 +44,10 @@
       "Bash(tasklist:*)",
       "Bash(set PATH=\"C:\\\\Program Files\\\\Rancher Desktop\\\\resources\\\\resources\\\\win32\\\\bin\")",
       "Bash(%PATH%)",
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "Bash(./mvnw clean test:*)",
+      "Bash(timeout 30 tail:*)",
+      "Bash(exit 0)"
     ]
   }
 }

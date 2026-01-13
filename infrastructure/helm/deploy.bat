@@ -81,29 +81,6 @@ if errorlevel 1 (
 )
 echo   helm found
 
-REM Add Rancher Desktop to PATH if not already there
-set RANCHER_BIN=C:\Program Files\Rancher Desktop\resources\resources\win32\bin
-if exist "%RANCHER_BIN%\docker.exe" (
-    set PATH=%RANCHER_BIN%;%PATH%
-)
-
-REM Check if docker daemon is running (not just if binary exists)
-echo   Checking Docker daemon...
-docker info >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Docker daemon is not running. Please ensure Rancher Desktop is fully started.
-    echo.
-    echo Troubleshooting steps:
-    echo   1. Check Rancher Desktop in system tray - wait for it to stop spinning
-    echo   2. In Rancher Desktop preferences, ensure Container Engine is set to 'dockerd (moby)'
-    echo   3. Try: docker version
-    echo   4. If needed, restart Rancher Desktop
-    echo.
-    exit /b 1
-)
-echo   Docker daemon is running
-echo.
-
 REM Deploy Strimzi Kafka (first!)
 echo [3/6] Deploying Strimzi Kafka cluster...
 echo   Calling strimzi deployment script...

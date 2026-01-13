@@ -5,8 +5,8 @@ global:
   namespace: demo
   environment: production
 
-# Kafka Drop5 Configuration (Kafdrop)
-kafkaUi:
+# Kafka Drop Configuration (Kafdrop)
+kafkadrop:
   enabled: true
   replicaCount: 1
   image:

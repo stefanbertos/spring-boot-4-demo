@@ -2,8 +2,9 @@ spring:
   application:
     name: demo-test
 
-  # Kafka configuration (auto-configured by @ServiceConnection)
+  # Kafka configuration (dynamically set by TestcontainersConfiguration)
   kafka:
+    # bootstrap-servers is set dynamically by @DynamicPropertySource
     consumer:
       auto-offset-reset: earliest
       group-id: test-group

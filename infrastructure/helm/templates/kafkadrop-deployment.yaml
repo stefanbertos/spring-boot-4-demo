@@ -1,4 +1,4 @@
-{{- if .Values.kafkaUi.enabled }}
+{{- if .Values.kafkadrop.enabled }}
 ---
 # Kafka Drop5 Service (Kafdrop)
 apiVersion: v1
@@ -9,14 +9,14 @@ metadata:
   labels:
     app: kafka-drop5
 spec:
-  type: {{ .Values.kafkaUi.service.type }}
+  type: {{ .Values.kafkadrop.service.type }}
   selector:
     app: kafka-drop5
   ports:
-  - port: {{ .Values.kafkaUi.service.port }}
-    targetPort: {{ .Values.kafkaUi.service.port }}
-    {{- if eq .Values.kafkaUi.service.type "NodePort" }}
-    nodePort: {{ .Values.kafkaUi.service.nodePort }}
+  - port: {{ .Values.kafkadrop.service.port }}
+    targetPort: {{ .Values.kafkadrop.service.port }}
+    {{- if eq .Values.kafkadrop.service.type "NodePort" }}
+    nodePort: {{ .Values.kafkadrop.service.nodePort }}
     {{- end }}
     name: http
 ---
@@ -29,7 +29,7 @@ metadata:
   labels:
     app: kafka-drop5
 spec:
-  replicas: {{ .Values.kafkaUi.replicaCount }}
+  replicas: {{ .Values.kafkadrop.replicaCount }}
   selector:
     matchLabels:
       app: kafka-drop5
@@ -40,31 +40,31 @@ spec:
     spec:
       containers:
       - name: kafka-drop5
-        image: {{ .Values.kafkaUi.image.repository }}:{{ .Values.kafkaUi.image.tag }}
-        imagePullPolicy: {{ .Values.kafkaUi.image.pullPolicy }}
+        image: {{ .Values.kafkadrop.image.repository }}:{{ .Values.kafkadrop.image.tag }}
+        imagePullPolicy: {{ .Values.kafkadrop.image.pullPolicy }}
         ports:
-        - containerPort: {{ .Values.kafkaUi.service.port }}
+        - containerPort: {{ .Values.kafkadrop.service.port }}
           name: http
         env:
         - name: KAFKA_BROKERCONNECT
-          value: {{ .Values.kafkaUi.kafka.brokerConnect }}
+          value: {{ .Values.kafkadrop.kafka.brokerConnect }}
         - name: JVM_OPTS
-          value: {{ .Values.kafkaUi.jvmOpts }}
+          value: {{ .Values.kafkadrop.jvmOpts }}
         - name: SERVER_SERVLET_CONTEXTPATH
-          value: {{ .Values.kafkaUi.serverServletContextPath }}
+          value: {{ .Values.kafkadrop.serverServletContextPath }}
         resources:
-          {{- toYaml .Values.kafkaUi.resources | nindent 10 }}
+          {{- toYaml .Values.kafkadrop.resources | nindent 10 }}
         livenessProbe:
           httpGet:
             path: /
-            port: {{ .Values.kafkaUi.service.port }}
+            port: {{ .Values.kafkadrop.service.port }}
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /
-            port: {{ .Values.kafkaUi.service.port }}
+            port: {{ .Values.kafkadrop.service.port }}
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
