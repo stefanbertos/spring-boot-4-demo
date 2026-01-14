@@ -87,6 +87,12 @@ echo   Installing Kafka and ZooKeeper (3 nodes each)...
 echo   Using patched local charts (Kubernetes 1.25+ compatible)
 echo   This may take 5-10 minutes...
 
+REM Ensure namespace has Helm ownership labels
+kubectl create namespace %NAMESPACE% 2>nul
+kubectl label namespace %NAMESPACE% app.kubernetes.io/managed-by=Helm --overwrite >nul 2>&1
+kubectl annotate namespace %NAMESPACE% meta.helm.sh/release-name=demo --overwrite >nul 2>&1
+kubectl annotate namespace %NAMESPACE% meta.helm.sh/release-namespace=%NAMESPACE% --overwrite >nul 2>&1
+
 REM Deploy using local patched charts
 helm upgrade --install kafka ..\cp-helm-charts ^
     --namespace %NAMESPACE% ^
@@ -209,6 +215,7 @@ if %INFRA_ONLY%==0 (
     echo   Demo App:       http://localhost:31080
     echo   Actuator:       http://localhost:31080/actuator
 )
+echo   Kafkadrop:      http://localhost:31800
 echo   Prometheus:     http://localhost:31090
 echo   Grafana:        http://localhost:31300 ^(admin/admin^)
 echo   IBM MQ Console: https://localhost:31443/ibmmq/console ^(admin/passw0rd^)
