@@ -1,0 +1,55 @@
+## Kafka Configuration for Confluent Helm Charts
+
+cp-zookeeper:
+  enabled: true
+  servers: 3
+  persistence:
+    enabled: true
+    size: 5Gi
+  podDisruptionBudget:
+    enabled: false
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+cp-kafka:
+  enabled: true
+  brokers: 3
+  persistence:
+    enabled: true
+    size: 20Gi
+  podDisruptionBudget:
+    enabled: false
+  configurationOverrides:
+    "auto.create.topics.enable": true
+    "default.replication.factor": 3
+    "min.insync.replicas": 2
+    "offsets.topic.replication.factor": 3
+    "log.retention.hours": 168
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+
+# Disable components we don't need
+cp-schema-registry:
+  enabled: false
+
+cp-kafka-rest:
+  enabled: false
+
+cp-kafka-connect:
+  enabled: false
+
+cp-ksql-server:
+  enabled: false
+
+cp-control-center:
+  enabled: false

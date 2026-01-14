@@ -86,27 +86,29 @@ data:
             action: replace
             target_label: app
 
-      # Scrape Strimzi Kafka brokers (JMX exporter on port 9404)
-      - job_name: 'kafka-cluster-kafka'
+      # Scrape Confluent Kafka brokers (JMX exporter on port 5556)
+      - job_name: 'kafka-cp-kafka'
         kubernetes_sd_configs:
           - role: pod
             namespaces:
               names:
                 - {{ .Values.global.namespace }}
         relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_strimzi_io_cluster]
+          - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: kafka-cluster
-          - source_labels: [__meta_kubernetes_pod_label_strimzi_io_name]
-            action: keep
-            regex: kafka-cluster-kafka
+            regex: cp-kafka
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
           - source_labels: [__meta_kubernetes_pod_ip]
             target_label: __address__
-            replacement: '${1}:9404'
+            replacement: '${1}:5556'
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_ip]
+            target_label: __address__
+            replacement: '${1}:5556'
 
       # Scrape IBM MQ metrics (if exposed)
       - job_name: 'ibmmq'

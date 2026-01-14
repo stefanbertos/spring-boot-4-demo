@@ -1,5 +1,5 @@
 @echo off
-REM Complete cleanup script for Helm and Strimzi Kafka
+REM Complete cleanup script for Helm and Kafka
 
 echo =========================================
 echo   Cleanup - Demo App and Infrastructure
@@ -26,12 +26,17 @@ timeout /t 5 /nobreak >nul
 echo   Done
 
 echo.
-echo [4/6] Cleaning up Strimzi Kafka...
-echo   Calling Strimzi cleanup script...
-cd ..\strimzi
-call cleanup.bat
-cd ..\helm
-echo   Strimzi Kafka cleanup complete
+echo [4/6] Cleaning up Kafka...
+echo   Uninstalling Kafka Helm release...
+helm uninstall kafka -n demo 2>nul
+echo   Waiting for Kafka pods to terminate...
+timeout /t 15 /nobreak >nul
+kubectl wait --for=delete pod -l app=cp-kafka -n demo --timeout=60s 2>nul
+kubectl wait --for=delete pod -l app=cp-zookeeper -n demo --timeout=60s 2>nul
+echo   Deleting Kafka PVCs...
+kubectl delete pvc -n demo -l app=cp-kafka --ignore-not-found=true 2>nul
+kubectl delete pvc -n demo -l app=cp-zookeeper --ignore-not-found=true 2>nul
+echo   Kafka cleanup complete
 
 echo.
 echo [5/6] Deleting namespace (if empty)...
@@ -53,14 +58,6 @@ if errorlevel 1 (
     echo   ⚠ WARNING: Namespace demo still exists
 )
 
-echo.
-echo Checking Strimzi operator namespace:
-kubectl get namespace strimzi-operator 2>nul
-if errorlevel 1 (
-    echo   ✓ Namespace strimzi-operator: DELETED
-) else (
-    echo   ⚠ Namespace strimzi-operator still exists
-)
 
 echo.
 echo =========================================

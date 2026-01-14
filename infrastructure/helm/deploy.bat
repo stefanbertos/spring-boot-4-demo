@@ -81,18 +81,27 @@ if errorlevel 1 (
 )
 echo   helm found
 
-REM Deploy Strimzi Kafka (first!)
-echo [3/6] Deploying Strimzi Kafka cluster...
-echo   Calling strimzi deployment script...
-cd ..\strimzi
-call deploy.bat
+REM Deploy Confluent Kafka (first!)
+echo [3/6] Deploying Confluent Kafka cluster...
+echo   Installing Kafka and ZooKeeper (3 nodes each)...
+echo   Using patched local charts (Kubernetes 1.25+ compatible)
+echo   This may take 5-10 minutes...
+
+REM Deploy using local patched charts
+helm upgrade --install kafka ..\cp-helm-charts ^
+    --namespace %NAMESPACE% ^
+    --create-namespace ^
+    -f kafka-values.yaml ^
+    --wait --timeout 15m
 if errorlevel 1 (
-    echo ERROR: Strimzi Kafka deployment failed
-    cd ..\helm
+    echo ERROR: Kafka deployment failed
+    echo.
+    echo Check logs with:
+    echo   kubectl get pods -n %NAMESPACE%
+    echo   kubectl logs -n %NAMESPACE% -l app=cp-kafka
     exit /b 1
 )
-cd ..\helm
-echo   Strimzi Kafka deployed successfully
+echo   Kafka deployed successfully
 echo.
 
 REM Build Docker image
@@ -203,7 +212,7 @@ if %INFRA_ONLY%==0 (
 echo   Prometheus:     http://localhost:31090
 echo   Grafana:        http://localhost:31300 ^(admin/admin^)
 echo   IBM MQ Console: https://localhost:31443/ibmmq/console ^(admin/passw0rd^)
-echo   Kafka ^(Strimzi^): kafka-cluster-kafka-bootstrap:9092
+echo   Kafka: kafka-cp-kafka:9092
 echo.
 echo Pods:
 kubectl get pods -n %NAMESPACE%
@@ -214,10 +223,10 @@ echo.
 echo StatefulSets:
 kubectl get statefulsets -n %NAMESPACE%
 echo.
-echo Kafka Cluster ^(Strimzi^):
-kubectl get kafka -n %NAMESPACE% 2>nul
+echo Kafka Pods:
+kubectl get pods -n %NAMESPACE% -l app=cp-kafka 2>nul
 if errorlevel 1 (
-    echo   Strimzi Kafka not deployed yet
+    echo   Kafka not deployed yet
 )
 echo.
 if %INFRA_ONLY%==1 (
@@ -246,10 +255,10 @@ REM ========================================
 :status
 echo Deployment Status:
 echo.
-echo Kafka Cluster ^(Strimzi^):
-kubectl get kafka -n %NAMESPACE% 2>nul
+echo Kafka Pods:
+kubectl get pods -n %NAMESPACE% -l app=cp-kafka 2>nul
 if errorlevel 1 (
-    echo   Strimzi Kafka not deployed
+    echo   Kafka not deployed
 )
 echo.
 echo Pods:

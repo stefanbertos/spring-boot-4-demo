@@ -10,7 +10,7 @@ deploy.bat deploy
 ```
 
 That's it! This single command will:
-1. ✅ Deploy Strimzi Kafka (3 brokers, KRaft mode)
+1. ✅ Deploy Confluent Kafka (3 brokers, with ZooKeeper)
 2. ✅ Build and deploy your application
 3. ✅ Deploy IBM MQ, Prometheus, and Grafana
 4. ✅ Wait for everything to be ready
@@ -20,16 +20,13 @@ That's it! This single command will:
 ```
 infrastructure/
 ├── helm/                    ⭐ MAIN DEPLOYMENT SCRIPTS
-│   ├── deploy.bat          → Deploy everything (calls strimzi/deploy.bat)
-│   ├── cleanup.bat         → Cleanup everything (calls strimzi/cleanup.bat)
+│   ├── deploy.bat          → Deploy everything (Kafka + App + Infrastructure)
+│   ├── cleanup.bat         → Cleanup everything
+│   ├── kafka-values.yaml   → Kafka configuration
 │   ├── templates/          → Helm templates for app and infrastructure
 │   └── values.yaml         → Configuration
 │
-└── strimzi/                 → Kafka deployment (called automatically)
-    ├── deploy.bat          → Deploy Kafka only (called by helm/deploy.bat)
-    ├── cleanup.bat         → Cleanup Kafka (called by helm/cleanup.bat)
-    ├── kafka-cluster.yaml  → Kafka CRD definition
-    └── operator-values.yaml → Strimzi operator config
+└── cp-helm-charts/         → Patched Confluent Kafka charts (Kubernetes 1.25+ compatible)
 ```
 
 ## Deployment Options
@@ -43,7 +40,7 @@ deploy.bat deploy
 ```
 
 Includes:
-- Strimzi Kafka (3 brokers, KRaft mode)
+- Confluent Kafka (3 brokers, with ZooKeeper)
 - Kafka Drop5 (web interface)
 - Demo Application
 - IBM MQ
@@ -58,7 +55,7 @@ deploy.bat deploy --infra-only
 ```
 
 Includes:
-- Strimzi Kafka (3 brokers)
+- Confluent Kafka (3 brokers)
 - Kafka Drop5
 - IBM MQ
 - Prometheus + Grafana
@@ -85,38 +82,38 @@ cleanup.bat
 ```
 
 This will:
-1. Uninstall Helm releases
-2. Delete cluster resources
-3. Cleanup Strimzi Kafka (calls `strimzi/cleanup.bat` automatically)
-4. Delete namespaces
+1. Uninstall Helm releases (demo app + infrastructure)
+2. Uninstall Kafka Helm release
+3. Wait for pods to terminate
+4. Delete all PVCs
+5. Delete demo namespace
 
 ## Components
 
-### Strimzi Kafka (Deployed First!)
+### Confluent Kafka (Deployed First!)
 
-**What is Strimzi?**
-- Production-ready Kafka operator for Kubernetes
-- CNCF Sandbox project
-- Widely adopted, battle-tested
+**What is it?**
+- Production-ready Kafka deployment using cp-helm-charts
+- Classic ZooKeeper + Kafka architecture
+- Patched for Kubernetes 1.25+ compatibility
 
 **Configuration:**
-- 3 Kafka brokers (KRaft mode, no Zookeeper!)
+- 3 ZooKeeper nodes for coordination
+- 3 Kafka brokers for high availability
 - Replication factor: 3
 - Min in-sync replicas: 2
 - Storage: 20Gi per broker (60Gi total)
-- Bootstrap server: `kafka-cluster-kafka-bootstrap:9092`
+- Bootstrap server: `kafka-cp-kafka:9092`
 
-**Why Strimzi?**
-- ✅ Built-in health checks (works perfectly!)
-- ✅ No Zookeeper needed (simpler, faster)
-- ✅ Automated Day-2 operations
-- ✅ Production-proven
-- ✅ 50% fewer pods than custom charts
-- ✅ 30-40% less memory usage
+**Features:**
+- ✅ Persistent storage for data durability
+- ✅ Auto-create topics enabled
+- ✅ 7-day message retention
+- ✅ Production-grade replication
+- ✅ JMX metrics for Prometheus
 
-**Documentation:**
-- Quick Start: `strimzi/QUICKSTART.md`
-- Detailed Docs: `strimzi/README.md`
+**Configuration File:**
+- `helm/kafka-values.yaml` - Centralized Kafka settings
 
 ### IBM MQ
 
@@ -125,10 +122,10 @@ This will:
 - Web Console: https://localhost:31443/ibmmq/console
 - Credentials: admin/passw0rd
 
-### Kafka (Strimzi)
+### Kafka (Confluent)
 
-- 3 brokers (KRaft mode)
-- Bootstrap: kafka-cluster-kafka-bootstrap:9092
+- 3 brokers (with ZooKeeper)
+- Bootstrap: kafka-cp-kafka:9092
 - No external access by default (internal only)
 
 ### Kafka Drop5
@@ -166,7 +163,7 @@ This will:
 - **Prometheus**: http://localhost:31090
 - **Grafana**: http://localhost:31300 (admin/admin)
 - **IBM MQ Console**: https://localhost:31443/ibmmq/console (admin/passw0rd)
-- **Kafka**: kafka-cluster-kafka-bootstrap:9092 (internal)
+- **Kafka**: kafka-cp-kafka:9092 (internal)
 
 ## Local Development
 
@@ -198,11 +195,11 @@ Shows:
 ### Check Kafka Specifically
 
 ```bash
-kubectl get kafka -n demo
-# Should show: READY = True
-
-kubectl get pods -n demo -l strimzi.io/cluster=kafka-cluster
+kubectl get pods -n demo -l app=cp-kafka
 # Should show 3 kafka pods running
+
+kubectl get pods -n demo -l app=cp-zookeeper
+# Should show 3 zookeeper pods running
 ```
 
 ### View Logs
@@ -214,54 +211,47 @@ kubectl logs -n demo -l app=demo-app -f
 
 **Kafka:**
 ```bash
-kubectl logs -n demo kafka-cluster-kafka-0 -f
+kubectl logs -n demo kafka-cp-kafka-0 -c cp-kafka-broker -f
 ```
 
-**Strimzi Operator:**
+**ZooKeeper:**
 ```bash
-kubectl logs -n strimzi-operator -l app.kubernetes.io/name=strimzi-cluster-operator -f
+kubectl logs -n demo kafka-cp-zookeeper-0 -f
 ```
 
 ### Common Issues
 
 **Kafka pods not starting:**
-- Check Strimzi operator logs
+- Check pod status: `kubectl describe pod kafka-cp-kafka-0 -n demo`
 - Verify PVCs are bound: `kubectl get pvc -n demo`
-- Check operator status: `kubectl get pods -n strimzi-operator`
+- Check events: `kubectl get events -n demo --sort-by='.lastTimestamp'`
 
 **Application can't connect to Kafka:**
-- Verify bootstrap server: `kafka-cluster-kafka-bootstrap:9092`
-- Check Kafka is ready: `kubectl get kafka -n demo`
-- Check network connectivity
+- Verify bootstrap server: `kafka-cp-kafka:9092`
+- Check Kafka pods are running: `kubectl get pods -n demo -l app=cp-kafka`
+- Test connectivity: `kubectl run test-client --rm -ti --image=confluentinc/cp-kafka:6.1.0 -n demo -- kafka-topics --bootstrap-server kafka-cp-kafka:9092 --list`
 
 ## Advanced Usage
 
-### Standalone Kafka Deployment
-
-**Only needed if deploying Kafka separately:**
-
-```cmd
-cd strimzi
-deploy.bat
-```
-
-**Note:** The main `helm/deploy.bat` calls this automatically!
-
 ### Scale Kafka Brokers
 
+**Note:** Kafka is deployed as part of the main helm/deploy.bat script.
+
 ```bash
-kubectl patch kafka kafka-cluster -n demo \
-  --type merge -p '{"spec":{"kafka":{"replicas":5}}}'
+# Scale Kafka brokers to 5
+kubectl scale statefulset kafka-cp-kafka -n demo --replicas=5
+
+# Scale back to 3
+kubectl scale statefulset kafka-cp-kafka -n demo --replicas=3
 ```
 
 ### Create Kafka Topics
 
 ```bash
-kubectl run kafka-producer -ti --rm=true \
-  --image=quay.io/strimzi/kafka:latest-kafka-3.9.0 \
-  --restart=Never \
-  -n demo -- bin/kafka-topics.sh \
-  --bootstrap-server kafka-cluster-kafka-bootstrap:9092 \
+kubectl run kafka-client --restart=Never \
+  --image=confluentinc/cp-kafka:6.1.0 \
+  -n demo -- kafka-topics \
+  --bootstrap-server kafka-cp-kafka:9092 \
   --create --topic my-topic \
   --replication-factor 3 --partitions 3
 ```
@@ -278,8 +268,8 @@ kubectl run kafka-producer -ti --rm=true \
 
 | Component | Pods | Memory | Storage |
 |-----------|------|--------|---------|
-| **Kafka (Strimzi)** | 3 | 3-6Gi | 60Gi |
-| **Entity Operator** | 1 | ~256Mi | - |
+| **Kafka (Confluent)** | 3 | 3-6Gi | 60Gi |
+| **ZooKeeper** | 3 | 1.5-3Gi | 60Gi |
 | **Kafka Drop5** | 1 | 256Mi-512Mi | - |
 | **IBM MQ** | 1 | 512Mi-1Gi | 5Gi (optional) |
 | **Demo App** | 1 | 512Mi-1Gi | - |
@@ -296,18 +286,14 @@ kubectl run kafka-producer -ti --rm=true \
 - `helm/values.yaml` - Configuration values
 - `helm/templates/` - Helm templates
 
-### Strimzi Kafka
+### Confluent Kafka
 
-- `strimzi/deploy.bat` - Kafka deployment (called by helm/deploy.bat)
-- `strimzi/cleanup.bat` - Kafka cleanup (called by helm/cleanup.bat)
-- `strimzi/kafka-cluster.yaml` - Kafka cluster definition
-- `strimzi/operator-values.yaml` - Operator configuration
-- `strimzi/QUICKSTART.md` - Quick start guide
-- `strimzi/README.md` - Detailed documentation
+- `helm/kafka-values.yaml` - Kafka configuration (ZooKeeper + Kafka)
+- `cp-helm-charts/` - Patched Confluent charts (Kubernetes 1.25+ compatible)
 
 ### Documentation
 
-- `CLEANUP_SUMMARY.md` - Summary of migration to Strimzi
+- `KAFKA_MIGRATION.md` - Migration guide (Confluent → Confluent cp-helm-charts)
 - This file - Main infrastructure guide
 
 ## Summary
@@ -315,7 +301,7 @@ kubectl run kafka-producer -ti --rm=true \
 **Everything is centralized in `infrastructure/helm/deploy.bat`!**
 
 ✅ **One command** deploys everything
-✅ **Kafka is deployed first** (Strimzi, production-ready)
+✅ **Kafka is deployed first** (Confluent, production-ready)
 ✅ **Kafka Drop5** for easy management and monitoring
 ✅ **Application depends on Kafka** (deployed after)
 ✅ **All infrastructure** included (MQ, Prometheus, Grafana)

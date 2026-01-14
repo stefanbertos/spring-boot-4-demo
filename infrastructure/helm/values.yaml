@@ -25,7 +25,7 @@ kafkadrop:
       memory: "512Mi"
       cpu: "500m"
   kafka:
-    brokerConnect: kafka-cluster-kafka-bootstrap:9092
+    brokerConnect: kafka-cp-kafka:9092
   jvmOpts: "-Xms32M -Xmx128M"
   serverServletContextPath: "/"
 
@@ -64,10 +64,33 @@ ibmmq:
   antiAffinity: ""
 
 # Apache Kafka Configuration
-# NOTE: Kafka is now deployed using Strimzi Operator (KRaft mode)
-# See infrastructure/strimzi/ for deployment files
-# Deploy with: ./infrastructure/strimzi/deploy.sh (or deploy.ps1 on Windows)
-# Bootstrap server: demo-kafka-cluster-kafka-bootstrap:9092
+# NOTE: Kafka is deployed using Confluent Helm Charts (with Zookeeper)
+# Kafka is deployed as part of this Helm chart
+# Bootstrap server: kafka-cp-kafka:9092
+kafka:
+  enabled: true
+  helmChart: confluentinc/cp-helm-charts
+  cp-zookeeper:
+    servers: 3
+    persistence:
+      enabled: true
+      size: 5Gi
+  cp-kafka:
+    brokers: 3
+    persistence:
+      enabled: true
+      size: 20Gi
+  # Disable components we don't need
+  cp-schema-registry:
+    enabled: false
+  cp-kafka-rest:
+    enabled: false
+  cp-kafka-connect:
+    enabled: false
+  cp-ksql-server:
+    enabled: false
+  cp-control-center:
+    enabled: false
 
 # Prometheus Configuration - Single Instance
 prometheus:

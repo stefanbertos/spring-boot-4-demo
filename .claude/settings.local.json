@@ -47,7 +47,22 @@
       "Bash(npm test)",
       "Bash(./mvnw clean test:*)",
       "Bash(timeout 30 tail:*)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(dir:*)",
+      "Bash(kubectl wait:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(deploy.bat)",
+      "Bash(cmd /c \"cd infrastructure\\\\strimzi && deploy.bat\")",
+      "Bash(helm repo add:*)",
+      "Bash(helm repo update:*)",
+      "Bash(kubectl create:*)",
+      "Bash(helm search repo:*)",
+      "Bash(kubectl version:*)",
+      "Bash(helm pull:*)",
+      "Bash(kubectl run:*)",
+      "Bash(tree:*)"
     ]
   }
 }
